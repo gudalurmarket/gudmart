@@ -1,0 +1,45 @@
+-----------B2C for farmers in gudalur-------
+
+Context: There is a mom and pop shop/market where there are a few neighbours/farmers who bring their produce at intervals or specific times during the month.
+
+Current situation and process: Today they receive
+
+
+Challenges:
+
+
+Objective/Need: 
+
+
+objective: 
+create an interface for farmers to sell their produce to customers
+integrate local languages (Tamil, Malayalam, English)             --taking into consideration that approx. 30% may be illiterate (falling to vulnerable groups)
+a simple ui - user friendly 
+                        \___> easy-to-navigate icons
+			\___> voice transcription - Multilingual auto-detect
+			\___> photo/video upload
+			\___> price setting made simpler - use ai assisted price setter which alerts user if the price is high/low/exploited
+
+selling produce - priority & in stock
+      		\___>needs to be a fair transaction
+		\___> need to make profit
+		\___> need to keep customers content
+
+
+Functional Requirements:
+
+Price 
+Voice to Text, 
+
+
+Non-functional requirements:
+Multilingual capabilities
+
+
+Technical Considerations:
+Preference is for a NoSQL db. Prefer Free tier only and stay on purely serverless/zero-cost infrastructure, where possible.
+
+
+Guardrails that are non-negotiable:
+Cost consideration for solution should be a minimalist approach
+
