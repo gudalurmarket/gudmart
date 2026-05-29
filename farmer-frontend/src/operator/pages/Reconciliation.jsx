@@ -3,11 +3,11 @@ import { CheckCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
-import { apiGet, apiPatch, apiPost } from '../../shared/lib/api.js'
+import { TransitionGateBlockedError, apiGet, apiPatch, apiPost } from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { PAYMENT_CHANNELS, UNIT_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
-import { formatINROptional, paiseToRupees, parseINR } from '../../shared/lib/paise.js'
+import { formatINROptional, paiseToRupees, parseINR, rupeesToPaise } from '../../shared/lib/paise.js'
 
 const TOAST_DISMISS_MS = 4000
 const FCFS_TOAST_DISMISS_MS = 6000
@@ -27,6 +27,12 @@ const TABS = [
 ]
 
 const PAYMENT_STATUSES = ['unpaid', 'partial', 'paid']
+
+const BLOCKER_TAB_MAP = {
+  UNCONFIRMED_PRICE_DIFF: 'priceDiff',
+  OUTSTATION_PAYMENT_INCOMPLETE: 'outstationPayments',
+  LOCAL_FARMER_PAYMENT_INCOMPLETE: 'localPayments',
+}
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -271,10 +277,12 @@ function FarmerPaymentCard({
                 type="number"
                 min={0}
                 step="0.01"
+                inputMode="decimal"
                 value={form.amountInput}
                 onChange={(e) => onFormChange('amountInput', e.target.value)}
+                readOnly={form.status === 'paid'}
                 placeholder="0"
-                className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+                className={`w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm${form.status === 'paid' ? ' bg-gray-50 text-gray-500' : ''}`}
               />
               <div className="flex gap-2">
                 {[PAYMENT_CHANNELS.CASH, PAYMENT_CHANNELS.UPI].map((ch) => (
@@ -412,6 +420,7 @@ function LocalFarmerPaymentCard({
               type="number"
               min={0}
               step="0.01"
+              inputMode="decimal"
               value={form.amountInput}
               onChange={(e) => onFormChange('amountInput', e.target.value)}
               className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
@@ -556,6 +565,12 @@ export default function Reconciliation() {
   const [deliveredDrafts, setDeliveredDrafts] = useState({})
   const [savingAssignmentId, setSavingAssignmentId] = useState(null)
   const [deliveryRowErrors, setDeliveryRowErrors] = useState({})
+
+  // ── Close Week state ──────────────────────────────────────────────────────
+  const [closeWeekConfirm, setCloseWeekConfirm] = useState(false)
+  const [closingWeek, setClosingWeek] = useState(false)
+  const [closeBlockers, setCloseBlockers] = useState(null)
+  const [closeWeekError, setCloseWeekError] = useState(null)
 
   // ── Toast auto-dismiss ────────────────────────────────────────────────────
   useEffect(() => {
@@ -728,28 +743,30 @@ export default function Reconciliation() {
       const form = paymentForms[id]
       if (!form) return
 
-      const amountPaidPaise =
-        form.status === 'unpaid' ? 0 : (parseINR(form.amountInput) ?? 0)
+      let amountPaidPaise
+      if (form.status === 'unpaid') {
+        amountPaidPaise = 0
+      } else if (form.status === 'paid') {
+        amountPaidPaise = payment.amountDue ?? 0
+      } else {
+        // partial — validate before sending
+        amountPaidPaise = rupeesToPaise(Number(form.amountInput))
+        if (!Number.isFinite(amountPaidPaise) || amountPaidPaise <= 0) {
+          setPaymentErrors((prev) => ({ ...prev, [id]: 'error.validation' }))
+          return
+        }
+      }
 
       setSavingPaymentId(id)
       setPaymentErrors((prev) => ({ ...prev, [id]: null }))
       try {
-        await apiPatch(`/api/v1/weeks/${weekId}/farmerpayments/${id}`, {
+        const updated = await apiPatch(`/api/v1/weeks/${weekId}/farmerpayments/${id}`, {
           status: form.status,
           amountPaid: amountPaidPaise,
           channel: form.status === 'unpaid' ? null : (form.channel ?? null),
         })
         setPayments((prev) =>
-          prev.map((p) =>
-            (p.paymentId ?? p._id) === id
-              ? {
-                  ...p,
-                  status: form.status,
-                  amountPaid: amountPaidPaise,
-                  channel: form.status === 'unpaid' ? null : form.channel,
-                }
-              : p,
-          ),
+          prev.map((p) => (p.paymentId ?? p._id) === id ? updated : p),
         )
         setOpenPaymentFormId(null)
         showToast('toast.farmer_payment_saved')
@@ -815,7 +832,7 @@ export default function Reconciliation() {
       setSavingLocalFarmerId(farmerGroup.farmerId)
       setLocalFarmerErrors((prev) => ({ ...prev, [farmerGroup.farmerId]: null }))
       try {
-        await Promise.all(
+        const results = await Promise.all(
           items.map((item, idx) =>
             apiPatch(
               `/api/v1/weeks/${weekId}/localfarmer-inbound/${item.inboundId}/payment`,
@@ -826,6 +843,21 @@ export default function Reconciliation() {
             ),
           ),
         )
+        setLocalFarmerItems((prev) => {
+          const next = [...prev]
+          for (const result of results) {
+            const idx = next.findIndex((it) => it.inboundId === result.inboundId)
+            if (idx !== -1) {
+              next[idx] = {
+                ...next[idx],
+                soldQty: result.soldQty,
+                paymentAmountCash: result.paymentAmountCash,
+                paymentAmountBank: result.paymentAmountBank,
+              }
+            }
+          }
+          return next
+        })
         setLocalFarmerPaidState((prev) => ({ ...prev, [farmerGroup.farmerId]: true }))
         showToast('toast.local_farmer_payment_saved')
       } catch (err) {
@@ -896,6 +928,28 @@ export default function Reconciliation() {
     },
     [weekId, deliveredDrafts, applyReconData, showToast],
   )
+
+  // ── Close Week handler ────────────────────────────────────────────────────
+  const handleCloseWeek = useCallback(async () => {
+    setClosingWeek(true)
+    setCloseBlockers(null)
+    setCloseWeekError(null)
+    try {
+      await apiPatch(`/api/v1/weeks/${weekId}/state`, { targetState: 'closed' })
+      setCurrentState('closed')
+      setCloseWeekConfirm(false)
+      showToast('toast.week_closed')
+    } catch (err) {
+      setCloseWeekConfirm(false)
+      if (err instanceof TransitionGateBlockedError) {
+        setCloseBlockers(err.blockers ?? [])
+      } else {
+        setCloseWeekError(apiErrorTranslationKey(err))
+      }
+    } finally {
+      setClosingWeek(false)
+    }
+  }, [weekId, showToast])
 
   // ── Render: loading ───────────────────────────────────────────────────────
   if (loading) {
@@ -1151,6 +1205,73 @@ export default function Reconciliation() {
             </div>
           )}
         </>
+      )}
+
+      {/* ── Close Week ─────────────────────────────────────────────────────── */}
+      {isReconciliation && weekId && (
+        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 space-y-3">
+          {closeBlockers && closeBlockers.length > 0 && (
+            <div role="alert">
+              <p className="mb-2 text-sm font-medium text-red-700">
+                {t('reconciliation.close_blocked_header')}
+              </p>
+              <ul className="space-y-1.5">
+                {closeBlockers.map((blocker) => (
+                  <li key={`${blocker.type}-${blocker.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(BLOCKER_TAB_MAP[blocker.type] ?? 'priceDiff')
+                        setCloseBlockers(null)
+                      }}
+                      className="w-full text-left text-sm text-red-600 underline underline-offset-2 hover:text-red-800"
+                    >
+                      {blocker.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {closeWeekError && (
+            <p className="text-sm text-red-600" role="alert">{t(closeWeekError)}</p>
+          )}
+          {!closeWeekConfirm ? (
+            <button
+              type="button"
+              onClick={() => { setCloseBlockers(null); setCloseWeekError(null); setCloseWeekConfirm(true) }}
+              disabled={closingWeek}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {t('transition.reconciliation_to_closed.button')}
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-700">
+                {t('transition.reconciliation_to_closed.confirm_body')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleCloseWeek}
+                  disabled={closingWeek}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  {closingWeek && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
+                  {t('transition.reconciliation_to_closed.confirm_title')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCloseWeekConfirm(false)}
+                  disabled={closingWeek}
+                  className="rounded-xl border border-[#E8E4DF] px-4 py-2 text-sm font-medium text-gray-600 disabled:opacity-60"
+                >
+                  {t('action.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Toast */}

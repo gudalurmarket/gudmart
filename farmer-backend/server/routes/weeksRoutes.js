@@ -1,5 +1,6 @@
 'use strict'
 
+const mongoose = require('mongoose')
 const MarketWeek = require('../models/MarketWeek')
 const { transitionWeekState } = require('../modules/stateMachine/transitionExecutor')
 const { validateTransitionGate } = require('../modules/stateMachine/transitionGateValidators')
@@ -240,7 +241,13 @@ async function weeksRoutes (fastify) {
     const operatorId = request.user.uid
 
     if (targetState === 'closed') {
-      const session = fastify.mongo.client.startSession()
+      // Use Mongoose's own MongoClient and db so the session is shared correctly
+      // between Mongoose operations (transitionWeekState) and native driver
+      // operations (generateWeeklySummary). Mixing two separate MongoClients
+      // causes MongoInvalidArgumentError: "ClientSession must be from the same MongoClient".
+      const mongooseClient = mongoose.connection.getClient()
+      const mongooseDb = mongoose.connection.db
+      const session = mongooseClient.startSession()
       try {
         let summaryResult
         await session.withTransaction(async () => {
@@ -255,7 +262,7 @@ async function weeksRoutes (fastify) {
 
           summaryResult = await generateWeeklySummary(
             weekId,
-            fastify.db,
+            mongooseDb,
             session,
             request.user.uid
           )
@@ -275,6 +282,7 @@ async function weeksRoutes (fastify) {
           }
         })
       } catch (err) {
+        console.error('[CLOSE WEEK ERROR]', err)
         throw err
       } finally {
         await session.endSession()

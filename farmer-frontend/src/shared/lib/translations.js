@@ -627,6 +627,10 @@ export const translations = {
     en: 'Correction window closed — a price difference has already been confirmed',
     ta: 'திருத்த சாளரம் மூடப்பட்டது — ஒரு விலை வேறுபாடு ஏற்கனவே உறுதிப்படுத்தப்பட்டது',
   }, // TA: REVIEW REQUIRED
+  'reconciliation.close_blocked_header': {
+    en: 'Week cannot be closed until the following are resolved:',
+    ta: 'கீழ்க்காணும் பிரச்சினைகள் தீர்க்கப்படும் வரை வாரத்தை மூட முடியாது:', // TA: REVIEW REQUIRED
+  },
 
   // GROUP 26 — Farmer payment status (operator-facing, separate from farmer.payment.status)
   'payment.status.unpaid': { en: 'Unpaid', ta: 'செலுத்தப்படவில்லை' },

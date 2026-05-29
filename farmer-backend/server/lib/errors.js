@@ -133,6 +133,7 @@ function registerErrorHandler (fastify) {
       })
     }
 
+    console.error('[UNHANDLED ERROR]', err)
     request.log.error(err)
     return reply.code(500).send({
       code: 'INTERNAL_ERROR',
