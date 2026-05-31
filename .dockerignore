@@ -1,0 +1,81 @@
+# flyctl launch added from .gitignore
+# Dependencies
+**/node_modules
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Build outputs
+**/dist
+**/build
+
+# Logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+
+# Large binary / archive files
+**/*.zip
+**/*.xlsx
+**/*.pdf
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Editor
+**/.vscode
+**/.idea
+
+# Firebase service account
+**/**/serviceAccountKey.json
+
+# flyctl launch added from farmer-backend/.gitignore
+farmer-backend/**/node_modules
+farmer-backend/**/.env
+farmer-backend/**/server/config/serviceAccountKey.json
+farmer-backend/**/**/serviceAccountKey.json
+farmer-backend/**/.env.local
+farmer-backend/**/.env.*.local
+farmer-backend/**/*.log
+farmer-backend/**/npm-debug.log*
+farmer-backend/**/.DS_Store
+farmer-backend/**/Thumbs.db
+farmer-backend/**/.idea
+farmer-backend/**/.vscode
+farmer-backend/**/coverage
+farmer-backend/**/dist
+farmer-backend/**/build
+
+# flyctl launch added from farmer-backend/server/.gitignore
+farmer-backend/server/**/config/serviceAccountKey.json
+
+# flyctl launch added from farmer-frontend/.gitignore
+# Logs
+farmer-frontend/**/logs
+farmer-frontend/**/*.log
+farmer-frontend/**/npm-debug.log*
+farmer-frontend/**/yarn-debug.log*
+farmer-frontend/**/yarn-error.log*
+farmer-frontend/**/pnpm-debug.log*
+farmer-frontend/**/lerna-debug.log*
+
+farmer-frontend/**/node_modules
+farmer-frontend/**/dist
+farmer-frontend/**/dist-ssr
+farmer-frontend/**/*.local
+
+# Editor directories and files
+farmer-frontend/**/.vscode/*
+!farmer-frontend/**/.vscode/extensions.json
+farmer-frontend/**/.idea
+farmer-frontend/**/.DS_Store
+farmer-frontend/**/*.suo
+farmer-frontend/**/*.ntvs*
+farmer-frontend/**/*.njsproj
+farmer-frontend/**/*.sln
+farmer-frontend/**/*.sw?
+farmer-frontend/**/.env
+fly.toml
