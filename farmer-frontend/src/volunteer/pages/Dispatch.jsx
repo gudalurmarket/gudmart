@@ -18,7 +18,7 @@ function SearchBar ({ value, onChange }) {
       <Search
         size={18}
         strokeWidth={1.5}
-        className="absolute left-3 text-gray-400 pointer-events-none"
+        className="absolute left-3 text-[--color-text-disabled] pointer-events-none"
       />
       <input
         type="search"
@@ -26,13 +26,13 @@ function SearchBar ({ value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t('dispatch.search_placeholder')}
-        className="w-full min-h-[44px] rounded-lg border border-[#E8E4DF] bg-white pl-9 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D5A1B]/30"
+        className="w-full min-h-[44px] rounded-lg border border-[--color-border] bg-[--color-surface] pl-9 pr-10 text-sm text-[--color-text-primary] placeholder:text-[--color-text-disabled] focus:outline-none focus:ring-2 focus:ring-[--color-primary]/30"
       />
       {value !== '' && (
         <button
           type="button"
           onClick={() => onChange('')}
-          className="absolute right-3 flex items-center justify-center min-h-[44px] min-w-[44px] text-gray-400"
+          className="absolute right-3 flex items-center justify-center min-h-[44px] min-w-[44px] text-[--color-text-disabled]"
           aria-label="Clear search"
         >
           <X size={16} strokeWidth={1.5} />
@@ -52,11 +52,11 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
 
   if (isDispatched) {
     return (
-      <div className="bg-[#F7F5F2] border border-[#E8E4DF] rounded-lg shadow-sm p-4">
-        <p className="font-semibold text-base text-gray-400 mb-2">
+      <div className="bg-[--color-surface-raised] border border-[--color-border] rounded-lg shadow-sm p-4">
+        <p className="font-semibold text-base text-[--color-text-disabled] mb-2">
           {order.customerName}
         </p>
-        <div className="flex items-center gap-2 text-gray-400">
+        <div className="flex items-center gap-2 text-[--color-text-disabled]">
           <CheckCircle2 size={18} strokeWidth={1.5} />
           <span className="text-sm">{t('status.dispatched')}</span>
         </div>
@@ -65,8 +65,8 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
   }
 
   return (
-    <div className="bg-white border border-[#E8E4DF] rounded-lg shadow-sm p-4">
-      <p className="font-semibold text-base text-gray-900 mb-3">
+    <div className="bg-[--color-surface] border border-[--color-border] rounded-lg shadow-sm p-4">
+      <p className="font-semibold text-base text-[--color-text-primary] mb-3">
         {order.customerName}
       </p>
 
@@ -75,10 +75,10 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
         {order.lineItems.map((item) => (
           <div
             key={item.productId}
-            className="flex items-center justify-between text-sm text-gray-700"
+            className="flex items-center justify-between text-sm text-[--color-text-secondary]"
           >
             <span>{item.nameEn}</span>
-            <span className="shrink-0 ml-2 text-gray-600">
+            <span className="shrink-0 ml-2 text-[--color-text-secondary]">
               {item.deliveredQty} {item.unit}
             </span>
           </div>
@@ -87,16 +87,16 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
 
       {/* Balance due row — only when > 0 */}
       {order.balanceDue > 0 && (
-        <div className="mb-3 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
+        <div className="mb-3 rounded-md bg-[--color-warning-light] border border-[--color-warning-light] px-3 py-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-[--color-text-secondary]">
               {t('dispatch.balance_due_label')}
             </span>
-            <span className="text-sm font-semibold text-amber-700">
+            <span className="text-sm font-semibold text-[--color-warning]">
               {formatINR(order.balanceDue)}
             </span>
           </div>
-          <p className="text-xs text-amber-700 mt-0.5">
+          <p className="text-xs text-[--color-warning] mt-0.5">
             {t('dispatch.direct_to_operator')}
           </p>
         </div>
@@ -106,7 +106,7 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
       <button
         onClick={() => onMarkDispatched(order.orderId)}
         disabled={anyDispatching}
-        className="w-full min-h-[48px] bg-[#2D5A1B] text-white rounded-lg flex items-center justify-center font-medium text-sm disabled:opacity-60 transition-opacity"
+        className="w-full min-h-[48px] bg-[--color-primary] text-[--color-text-inverse] rounded-lg flex items-center justify-center font-medium text-sm disabled:opacity-60 transition-opacity"
       >
         {isThisDispatching ? (
           <LoadingSpinner size="sm" label="" />
@@ -122,7 +122,7 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
 
 function SectionHeader ({ label }) {
   return (
-    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide py-2">
+    <div className="text-xs font-semibold text-[--color-text-secondary] uppercase tracking-wide py-2">
       {label}
     </div>
   )
@@ -203,7 +203,7 @@ export default function Dispatch () {
   // ── Loading week state ───────────────────────────────────────────────────────
   if (weekLoading) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
@@ -215,11 +215,11 @@ export default function Dispatch () {
   // ── State gate ───────────────────────────────────────────────────────────────
   if (weekState !== WEEK_STATES.MARKET_DAY) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
-        <p className="text-center text-gray-600 mt-8">
+        <p className="text-center text-[--color-text-secondary] mt-8">
           {t('dispatch.not_available_in_state')}
         </p>
       </div>
@@ -229,7 +229,7 @@ export default function Dispatch () {
   // ── Data loading ─────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
@@ -241,32 +241,32 @@ export default function Dispatch () {
   // ── Load error ───────────────────────────────────────────────────────────────
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
-        <p className="text-center text-red-600 mt-8">{loadError}</p>
+        <p className="text-center text-[--color-error] mt-8">{loadError}</p>
       </div>
     )
   }
 
   // ── Normal render ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+    <div className="min-h-full bg-[--color-background] px-4 py-6">
       {/* Header: badge + title + remaining badge */}
       <div className="mb-1">
         <StateMachineBadge state={weekState} />
       </div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-[--color-text-primary]">
           {t('nav.volunteer.dispatch')}
         </h1>
         {remainingCount > 0 ? (
-          <span className="bg-[#2D5A1B] text-white text-xs font-semibold rounded-full px-2 py-0.5">
+          <span className="bg-[--color-primary] text-[--color-text-inverse] text-xs font-semibold rounded-full px-2 py-0.5">
             {t('dispatch.remaining_count').replace('{count}', remainingCount)}
           </span>
         ) : orders.length > 0 ? (
-          <span className="text-sm font-medium text-green-700">
+          <span className="text-sm font-medium text-[--color-success]">
             {t('dispatch.all_dispatched')}
           </span>
         ) : null}
@@ -279,21 +279,21 @@ export default function Dispatch () {
 
       {/* Dispatch error banner */}
       {dispatchError && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
+        <div className="mb-4 bg-[--color-error-light] border border-[--color-error-light] text-[--color-error] rounded-md px-4 py-3 text-sm">
           {dispatchError}
         </div>
       )}
 
       {/* Empty state — no orders at all */}
       {orders.length === 0 && (
-        <p className="text-center text-gray-500 mt-8">
+        <p className="text-center text-[--color-text-secondary] mt-8">
           {t('empty.dispatch_list')}
         </p>
       )}
 
       {/* Empty state — search returned nothing */}
       {orders.length > 0 && filtered.length === 0 && (
-        <p className="text-center text-gray-500 mt-8">
+        <p className="text-center text-[--color-text-secondary] mt-8">
           {t('dispatch.no_results')}
         </p>
       )}

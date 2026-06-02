@@ -57,19 +57,19 @@ function DeliveryItemRow ({ assignment, lang, onSave, pendingQty, isSaving, last
     const diff = deliveredQty - expectedQty
     if (diff === 0) {
       varianceEl = (
-        <p className="mt-2 text-sm font-medium text-green-700">
+        <p className="mt-2 text-sm font-medium text-[--color-success]">
           ✓ {t('delivery.full_delivery')}
         </p>
       )
     } else if (diff < 0) {
       varianceEl = (
-        <p className="mt-2 text-sm font-medium text-red-600">
+        <p className="mt-2 text-sm font-medium text-[--color-error]">
           ⚠ {t('delivery.shortfall_flag')}: {Math.abs(diff)} {unitLabel}
         </p>
       )
     } else {
       varianceEl = (
-        <p className="mt-2 text-sm font-medium text-amber-600">
+        <p className="mt-2 text-sm font-medium text-[--color-warning]">
           ↑ {t('delivery.overdelivery_flag')}: {diff} {unitLabel}
         </p>
       )
@@ -77,27 +77,27 @@ function DeliveryItemRow ({ assignment, lang, onSave, pendingQty, isSaving, last
   }
 
   return (
-    <div className="bg-white border border-[#E8E4DF] rounded-lg shadow-sm p-4">
+    <div className="bg-[--color-surface] border border-[--color-border] rounded-lg shadow-sm p-4">
       {/* Item name + pending badge */}
       <div className="flex items-start justify-between gap-2 mb-3">
-        <p className="font-semibold text-base text-gray-900 leading-tight">{displayName}</p>
+        <p className="font-semibold text-base text-[--color-text-primary] leading-tight">{displayName}</p>
         {pendingQty != null && (
-          <span className="inline-flex items-center shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+          <span className="inline-flex items-center shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-[--color-warning-light] text-[--color-warning]">
             {t('delivery.pending_sync')}
           </span>
         )}
       </div>
 
       {/* Expected qty */}
-      <p className="text-sm text-gray-500 mb-3">
+      <p className="text-sm text-[--color-text-secondary] mb-3">
         {t('delivery.expected_qty_label')}:{' '}
-        <span className="text-gray-800 font-medium">{expectedQty} {unitLabel}</span>
+        <span className="text-[--color-text-primary] font-medium">{expectedQty} {unitLabel}</span>
       </p>
 
       {/* Input + save */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <label
-          className="text-sm text-gray-600"
+          className="text-sm text-[--color-text-secondary]"
           htmlFor={`qty-${assignmentId}`}
         >
           {t('delivery.delivered_qty_label')}
@@ -111,17 +111,17 @@ function DeliveryItemRow ({ assignment, lang, onSave, pendingQty, isSaving, last
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           disabled={isSaving}
-          className="w-full rounded-lg border border-[#E8E4DF] bg-white px-3 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2D5A1B] min-h-[44px] disabled:opacity-50"
+          className="w-full rounded-lg border border-[--color-border] bg-[--color-surface] px-3 py-2 text-base text-[--color-text-primary] focus:outline-none focus:ring-2 focus:ring-[--color-primary] min-h-[44px] disabled:opacity-50"
         />
 
         {lastSaveError && (
-          <p className="text-sm text-red-600">{lastSaveError}</p>
+          <p className="text-sm text-[--color-error]">{lastSaveError}</p>
         )}
 
         <button
           type="submit"
           disabled={isSaving || inputValue === ''}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#2D5A1B] text-white font-medium text-sm min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-[--color-primary] text-[--color-text-inverse] font-medium text-sm min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
         >
           {isSaving && (
             <span
@@ -153,12 +153,12 @@ function AllocationPanel ({ allocations, unit }) {
   const unitLabel = t(`unit.${unit}`)
 
   return (
-    <div className="bg-white border border-[#E8E4DF] rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-[--color-surface] border border-[--color-border] rounded-lg shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 min-h-[44px]"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[--color-text-secondary] min-h-[44px]"
       >
         <span>{t('delivery.fcfs_allocation_title')}</span>
         {expanded
@@ -168,14 +168,14 @@ function AllocationPanel ({ allocations, unit }) {
       </button>
 
       {expanded && (
-        <div className="border-t border-[#E8E4DF] px-4 pb-3">
+        <div className="border-t border-[--color-border] px-4 pb-3">
           {allocations.map((alloc) => (
             <div
               key={alloc.orderId}
-              className="flex items-center justify-between py-2 text-sm border-b border-[#F0EDE8] last:border-0"
+              className="flex items-center justify-between py-2 text-sm border-b border-[--color-background] last:border-0"
             >
-              <span className="font-mono text-gray-500">{alloc.orderId.slice(0, 8)}</span>
-              <span className="text-gray-800">
+              <span className="font-mono text-[--color-text-secondary]">{alloc.orderId.slice(0, 8)}</span>
+              <span className="text-[--color-text-primary]">
                 {alloc.allocatedQty}/{alloc.requestedQty} {unitLabel}
               </span>
             </div>
@@ -336,7 +336,7 @@ export default function DeliveryEntry () {
       <div>
         <StateMachineBadge state={state} />
       </div>
-      <h1 className="text-lg font-semibold text-gray-900">
+      <h1 className="text-lg font-semibold text-[--color-text-primary]">
         {t('nav.volunteer.delivery_entry')}
       </h1>
     </div>
@@ -345,7 +345,7 @@ export default function DeliveryEntry () {
   // ── Loading ─────────────────────────────────────────────────────────────
   if (weekLoading || (isLoading && assignments.length === 0)) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         {headerEl}
         <div className="flex justify-center mt-12">
           <LoadingSpinner size="lg" />
@@ -358,9 +358,9 @@ export default function DeliveryEntry () {
   if (loadError) {
     const errorKey = `error.${loadError.toLowerCase()}`
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         {headerEl}
-        <p className="mt-4 text-sm text-red-600">{t(errorKey)}</p>
+        <p className="mt-4 text-sm text-[--color-error]">{t(errorKey)}</p>
       </div>
     )
   }
@@ -368,10 +368,10 @@ export default function DeliveryEntry () {
   // ── State gate — only available in 'delivery' state ──────────────────────
   if (state !== WEEK_STATES.DELIVERY) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         {headerEl}
         <div className="mt-10 flex justify-center px-4">
-          <p className="text-sm text-gray-600 text-center max-w-xs">
+          <p className="text-sm text-[--color-text-secondary] text-center max-w-xs">
             {t('delivery.not_available_in_state')}
           </p>
         </div>
@@ -381,19 +381,19 @@ export default function DeliveryEntry () {
 
   // ── Main render ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+    <div className="min-h-full bg-[--color-background] px-4 py-6">
       {headerEl}
 
       {/* Offline banner */}
       {isOffline && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+        <div className="mb-4 bg-[--color-warning-light] border border-[--color-warning-light] text-[--color-warning] px-4 py-3 rounded-lg text-sm">
           {t('offline.banner')}
         </div>
       )}
 
       {/* Assignment cards */}
       {assignments.length === 0 ? (
-        <p className="mt-8 text-sm text-gray-500 text-center">
+        <p className="mt-8 text-sm text-[--color-text-secondary] text-center">
           {t('empty.delivery_list')}
         </p>
       ) : (

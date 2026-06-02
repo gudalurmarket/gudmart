@@ -12,6 +12,7 @@ import {
   Inbox,
   LayoutDashboard,
   Leaf,
+  Moon,
   Package,
   PackageCheck,
   Plus,
@@ -19,6 +20,7 @@ import {
   Send,
   Sprout,
   Store,
+  Sun,
   Truck,
   UserRound,
   UserX,
@@ -107,6 +109,11 @@ export function LineItemRowIcon ({ unmatched }) {
   const Icon = unmatched ? AlertCircle : Circle
   const colorClass = unmatched ? 'text-[--color-warning]' : 'text-[--color-text-secondary]'
   return <Icon size={16} strokeWidth={ICON_STROKE} className={`shrink-0 ${colorClass}`} aria-hidden="true" />
+}
+
+export function ThemeIcons ({ isDark, size = 16, className = '' }) {
+  const Icon = isDark ? Sun : Moon
+  return <Icon size={size} strokeWidth={ICON_STROKE} className={className} aria-hidden="true" />
 }
 
 export function SseStatusIcons ({ connected, className = '' }) {

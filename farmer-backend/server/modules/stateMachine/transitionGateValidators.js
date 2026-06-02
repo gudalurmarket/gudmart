@@ -89,7 +89,10 @@ async function validateOpenToLocked (weekId) {
 async function validateReconciliationToClosed (weekId) {
   const blockers = []
 
-  const orders = await CustomerOrder.find({ week_id: weekId })
+  const orders = await CustomerOrder.find({
+    week_id: weekId,
+    status: { $ne: 'cancelled' }
+  })
     .select('order_id customer_id line_items')
     .lean()
 

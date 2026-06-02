@@ -3,6 +3,23 @@ import { apiGet } from '../lib/api.js'
 import { pickActiveWeek } from '../lib/activeWeek.js'
 import { resolveWeekId } from '../lib/apiErrors.js'
 
+const weekChangeListeners = new Set()
+
+/** Notify all useWeekState subscribers (e.g. after creating a new week). */
+export function notifyActiveWeekChanged () {
+  weekChangeListeners.forEach((listener) => {
+    listener()
+  })
+}
+
+/** @param {() => void} listener */
+export function subscribeActiveWeekChanged (listener) {
+  weekChangeListeners.add(listener)
+  return () => {
+    weekChangeListeners.delete(listener)
+  }
+}
+
 export default function useWeekState () {
   const [week, setWeek] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,6 +48,13 @@ export default function useWeekState () {
 
   useEffect(() => {
     fetchActiveWeek()
+  }, [fetchActiveWeek])
+
+  useEffect(() => {
+    weekChangeListeners.add(fetchActiveWeek)
+    return () => {
+      weekChangeListeners.delete(fetchActiveWeek)
+    }
   }, [fetchActiveWeek])
 
   return {

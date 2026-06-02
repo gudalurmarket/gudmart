@@ -46,7 +46,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
             return (
               <div
                 key={row.localId}
-                className="flex flex-wrap items-end gap-2 rounded-md border border-gray-200 bg-[--color-background] p-2"
+                className="flex flex-wrap items-end gap-2 rounded-md border border-[--color-border] bg-[--color-background] p-2"
               >
                 <LineItemRowIcon unmatched={unmatched} />
                 <div className="min-w-[140px] flex-1">
@@ -65,7 +65,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                       })
                     }}
                     className={`w-full min-h-[44px] rounded-md border px-2 py-2 text-sm text-[--color-text-primary] focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary] ${
-                      unmatched ? 'border-[--color-warning]' : 'border-gray-300'
+                      unmatched ? 'border-[--color-warning]' : 'border-[--color-border]'
                     }`}
                   >
                     <option value="">
@@ -91,7 +91,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                     step="any"
                     value={row.orderedQty}
                     onChange={(e) => updateLine(index, { orderedQty: e.target.value })}
-                    className="w-full min-h-[44px] rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
+                    className="w-full min-h-[44px] rounded-md border border-[--color-border] px-2 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
                   />
                 </div>
 
@@ -102,7 +102,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                   <select
                     value={row.unit}
                     onChange={(e) => updateLine(index, { unit: e.target.value })}
-                    className="w-full min-h-[44px] rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
+                    className="w-full min-h-[44px] rounded-md border border-[--color-border] px-2 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
                   >
                     <option value="">—</option>
                     {UNIT_OPTIONS.map((unit) => (
@@ -116,7 +116,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                 <button
                   type="button"
                   onClick={() => removeLine(index)}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-[--color-error] hover:bg-red-50"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-[--color-error] hover:bg-[--color-error-light]"
                   aria-label={t('intake.remove_line_item')}
                 >
                   <X size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -130,7 +130,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
       <button
         type="button"
         onClick={addLine}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-[--color-primary] hover:border-[--color-primary]"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-dashed border-[--color-border] px-4 py-2 text-sm font-medium text-[--color-primary] hover:border-[--color-primary]"
       >
         <Plus size={16} strokeWidth={1.5} aria-hidden="true" />
         {t('intake.add_line_item')}

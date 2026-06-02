@@ -39,15 +39,26 @@ function formatFcfsTimestamp (isoString, lang) {
 function parseStatusBadgeClass (parseStatus) {
   switch (parseStatus) {
     case PARSE_STATUS.CLEAN:
-      return 'bg-green-100 text-green-800'
+      return 'bg-[--color-success-light] text-[--color-success]'
     case PARSE_STATUS.PARTIAL:
     case PARSE_STATUS.MANUAL_REQUIRED:
-      return 'bg-amber-100 text-amber-800'
+      return 'bg-[--color-warning-light] text-[--color-warning]'
     case PARSE_STATUS.NO_ACTIVE_WEEK:
     case PARSE_STATUS.UNKNOWN_SENDER:
-      return 'bg-red-100 text-red-800'
+      return 'bg-[--color-error-light] text-[--color-error]'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-[--color-surface-raised] text-[--color-text-primary]'
+  }
+}
+
+function queueStatusBadgeClass (queueStatus) {
+  switch (queueStatus) {
+    case 'approved':
+      return 'bg-[--color-success-light] text-[--color-success]'
+    case 'rejected':
+      return 'bg-[--color-error-light] text-[--color-error]'
+    default:
+      return 'bg-[--color-surface-raised] text-[--color-text-primary]'
   }
 }
 
@@ -56,6 +67,7 @@ export default function ParsedMessageCard ({
   produceList,
   weekId,
   onProcessed,
+  readOnly = false,
 }) {
   const { lang, t } = useLang()
   const [lineItems, setLineItems] = useState(() => parsedItemsToEditorRows(message.parsedItems))
@@ -142,7 +154,7 @@ export default function ParsedMessageCard ({
   }
 
   return (
-    <article className="rounded-lg border border-gray-200 bg-[--color-surface] p-4 shadow-sm">
+    <article className="rounded-lg border border-[--color-border] bg-[--color-surface] p-4 shadow-sm">
       <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold text-[--color-text-primary]">
@@ -177,107 +189,125 @@ export default function ParsedMessageCard ({
       </div>
 
       {message.parseStatus === PARSE_STATUS.NO_ACTIVE_WEEK && (
-        <p className="mb-4 text-sm text-amber-700" role="note">
+        <p className="mb-4 text-sm text-[--color-warning]" role="note">
           {t('intake.no_active_week_instruction')}
         </p>
       )}
 
-      <LineItemEditor
-        lineItems={lineItems}
-        produceList={produceList}
-        onChange={setLineItems}
-      />
-
-      {validationError && (
-        <p className="mt-3 text-sm text-[--color-error]" role="alert">
-          {t('intake.validation.line_items')}
-        </p>
-      )}
-
-      {apiErrorKey && (
-        <p className="mt-3 text-sm text-[--color-error]" role="alert">
-          {t(apiErrorKey)}
-        </p>
-      )}
-
-      {unknownCustomer && (
-        <div
-          className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
-          role="alert"
-        >
-          <p>{t('error.unknown_sender')}</p>
-          <Link
-            to="/operator/registrations"
-            className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 font-medium text-[--color-primary] underline"
+      {readOnly ? (
+        /* Read-only view: show final queue status; no editor, no actions */
+        <div className="mt-3 flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${queueStatusBadgeClass(message.queueStatus)}`}
           >
-            {t('intake.register_customer')}
-            <ExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
-          </Link>
-        </div>
-      )}
-
-      {!showRejectForm ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleApprove}
-            disabled={submitting || unknownCustomer}
-            className="min-h-[44px] rounded-md bg-[--color-primary] px-4 py-2 text-sm font-medium text-white hover:bg-[--color-primary-dark] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {t('action.approve')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowRejectForm(true)
-              setApiErrorKey(null)
-            }}
-            disabled={submitting}
-            className="min-h-[44px] rounded-md border border-[--color-error] px-4 py-2 text-sm font-medium text-[--color-error] hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {t('action.reject')}
-          </button>
+            {t(`intake.queue_status.${message.queueStatus}`)}
+          </span>
+          {message.operatorNotes && (
+            <span className="text-xs text-[--color-text-secondary]">
+              {message.operatorNotes}
+            </span>
+          )}
         </div>
       ) : (
-        <div className="mt-4 space-y-3 rounded-md border border-gray-200 p-3">
-          <div>
-            <label
-              htmlFor={`reject-note-${message.messageId}`}
-              className="mb-1 block text-sm font-medium text-[--color-text-primary]"
+        <>
+          <LineItemEditor
+            lineItems={lineItems}
+            produceList={produceList}
+            onChange={setLineItems}
+          />
+
+          {validationError && (
+            <p className="mt-3 text-sm text-[--color-error]" role="alert">
+              {t('intake.validation.line_items')}
+            </p>
+          )}
+
+          {apiErrorKey && (
+            <p className="mt-3 text-sm text-[--color-error]" role="alert">
+              {t(apiErrorKey)}
+            </p>
+          )}
+
+          {unknownCustomer && (
+            <div
+              className="mt-4 rounded-md border border-[--color-warning] bg-[--color-warning-light] p-3 text-sm text-[--color-warning]"
+              role="alert"
             >
-              {t('field.notes')}
-            </label>
-            <textarea
-              id={`reject-note-${message.messageId}`}
-              rows={3}
-              value={rejectNote}
-              onChange={(e) => setRejectNote(e.target.value)}
-              placeholder={t('field.notes.placeholder')}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleRejectConfirm}
-              disabled={submitting}
-              className="min-h-[44px] rounded-md bg-[--color-error] px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {t('action.confirm')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowRejectForm(false)
-                setRejectNote('')
-              }}
-              disabled={submitting}
-              className="min-h-[44px] rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-[--color-text-secondary] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {t('action.cancel')}
-            </button>
-          </div>
-        </div>
+              <p>{t('error.unknown_sender')}</p>
+              <Link
+                to="/operator/registrations"
+                className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 font-medium text-[--color-primary] underline"
+              >
+                {t('intake.register_customer')}
+                <ExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
+              </Link>
+            </div>
+          )}
+
+          {!showRejectForm ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={submitting || unknownCustomer}
+                className="min-h-[44px] rounded-md bg-[--color-primary] px-4 py-2 text-sm font-medium text-[--color-text-inverse] hover:bg-[--color-primary-dark] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t('action.approve')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRejectForm(true)
+                  setApiErrorKey(null)
+                }}
+                disabled={submitting}
+                className="min-h-[44px] rounded-md border border-[--color-error] px-4 py-2 text-sm font-medium text-[--color-error] hover:bg-[--color-error-light] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t('action.reject')}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3 rounded-md border border-[--color-border] p-3">
+              <div>
+                <label
+                  htmlFor={`reject-note-${message.messageId}`}
+                  className="mb-1 block text-sm font-medium text-[--color-text-primary]"
+                >
+                  {t('field.notes')}
+                </label>
+                <textarea
+                  id={`reject-note-${message.messageId}`}
+                  rows={3}
+                  value={rejectNote}
+                  onChange={(e) => setRejectNote(e.target.value)}
+                  placeholder={t('field.notes.placeholder')}
+                  className="w-full rounded-md border border-[--color-border] px-3 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleRejectConfirm}
+                  disabled={submitting}
+                  className="min-h-[44px] rounded-md bg-[--color-error] px-4 py-2 text-sm font-medium text-[--color-text-inverse] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t('action.confirm')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectForm(false)
+                    setRejectNote('')
+                  }}
+                  disabled={submitting}
+                  className="min-h-[44px] rounded-md border border-[--color-border] px-4 py-2 text-sm font-medium text-[--color-text-secondary] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t('action.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </article>
   )

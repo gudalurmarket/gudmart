@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose')
 const MarketWeek = require('../models/MarketWeek')
+const { bootstrapFarmerPayments } = require('../modules/bootstrapFarmerPayments')
 const { transitionWeekState } = require('../modules/stateMachine/transitionExecutor')
 const { validateTransitionGate } = require('../modules/stateMachine/transitionGateValidators')
 const { aggregateWeeklySummary } = require('../modules/weeklySummaryAggregator')
@@ -239,6 +240,7 @@ async function weeksRoutes (fastify) {
     }
 
     const currentState = week.state
+    const operatorId = request.user.uid
 
     fastify.assertValidTransition(currentState, targetState)
 
@@ -249,8 +251,6 @@ async function weeksRoutes (fastify) {
         { weekId, currentState, targetState, blockers: gateResult.blockers }
       )
     }
-
-    const operatorId = request.user.uid
 
     if (targetState === 'closed') {
       const session = await mongoose.startSession()
@@ -291,6 +291,17 @@ async function weeksRoutes (fastify) {
       operatorId,
       note
     })
+
+    if (newState === 'reconciliation') {
+      try {
+        await bootstrapFarmerPayments(weekId, request.user.uid)
+      } catch (err) {
+        request.log.error(
+          { err, weekId },
+          'bootstrapFarmerPayments failed — manual recovery required'
+        )
+      }
+    }
 
     return {
       ok: true,

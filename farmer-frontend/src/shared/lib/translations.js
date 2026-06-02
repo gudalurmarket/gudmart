@@ -261,6 +261,10 @@ export const translations = {
     ta: 'சர்வர் பிழை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.'
   },
   'error.unknown': { en: 'Unknown error. Please try again.', ta: 'தெரியாத பிழை. மீண்டும் முயற்சிக்கவும்.' },
+  'error.duplicate_market_date': {
+    en: 'A week with this market date already exists.',
+    ta: 'இந்த சந்தை தேதியுடன் ஒரு வாரம் ஏற்கனவே உள்ளது.',
+  },
 
   // GROUP 15 — Toast / success messages
   'toast.order_confirmed': { en: 'Order confirmed.', ta: 'ஆர்டர் உறுதி செய்யப்பட்டது.' },
@@ -273,6 +277,7 @@ export const translations = {
   },
   'toast.topup_recorded': { en: 'Top-up recorded.', ta: 'டாப்-அப் பதிவு செய்யப்பட்டது.' }, // TA: REVIEW REQUIRED
   'toast.week_state_changed': { en: 'Week state updated.', ta: 'வார நிலை புதுப்பிக்கப்பட்டது.' },
+  'toast.week_created': { en: 'Week created.', ta: 'வாரம் உருவாக்கப்பட்டது.' },
   'toast.price_difference_confirmed': { en: 'Price difference confirmed.', ta: 'விலை வேறுபாடு உறுதி செய்யப்பட்டது.' },
   'toast.farmer_payment_recorded': { en: 'Farmer payment recorded.', ta: 'விவசாயி பணப்பதிவு பதிவு செய்யப்பட்டது.' },
   'toast.local_farmer_payment_recorded': { en: 'Local farmer payment recorded.', ta: 'உள்ளூர் விவசாயி பணப்பதிவு பதிவு செய்யப்பட்டது.' },
@@ -379,8 +384,8 @@ export const translations = {
 
   // GROUP 17 — Unit type labels (4 keys)
   'unit.kg': { en: 'kg', ta: 'கிலோ' },
-  'unit.piece': { en: 'piece', ta: 'துண்டு' }, // TA: REVIEW REQUIRED
-  'unit.bunch': { en: 'bunch', ta: 'கொத்து' }, // TA: REVIEW REQUIRED
+  'unit.piece': { en: 'Piece', ta: 'துண்டு' }, // TA: REVIEW REQUIRED
+  'unit.bunch': { en: 'Bunch', ta: 'கொத்து' }, // TA: REVIEW REQUIRED
   'unit.100g': { en: '100g', ta: '100 கிராம்' },
 
   // GROUP 18 — Empty state messages
@@ -442,6 +447,20 @@ export const translations = {
     en: 'Add at least one line item with product, quantity, and unit.',
     ta: 'பொருள், அளவு மற்றும் அலகுடன் குறைந்தது ஒரு வரி உருப்படியைச் சேர்க்கவும்.'
   },
+  'intake.add_manually_button': { en: 'Add order manually', ta: 'கைமுறையாக ஆர்டர் சேர்' },
+  'intake.manual_order.title': { en: 'Add Order Manually', ta: 'கைமுறை ஆர்டர் உள்ளீடு' },
+  'intake.manual_order.customer_placeholder': { en: 'Search or select customer…', ta: 'வாடிக்கையாளரை தேடுங்கள்…' },
+  'intake.manual_order.submit': { en: 'Submit Order', ta: 'ஆர்டர் சமர்பி' },
+  'intake.manual_order.confirmed': { en: 'Order confirmed — wallet debited', ta: 'ஆர்டர் உறுதி — வாலெட் டெபிட் செய்யப்பட்டது' },
+  'intake.manual_order.pending_payment': { en: 'Order saved as Pending Payment — wallet short by', ta: 'ஆர்டர் "கட்டணம் நிலுவையில்" என சேமிக்கப்பட்டது — குறைவு' },
+  'intake.queue_readonly_notice': {
+    en: 'Queue actions are only available when the week is open. Showing existing messages.',
+    ta: 'வாரம் திறந்திருக்கும்போது மட்டுமே வரிசை செயல்கள் கிடைக்கும். இருக்கும் செய்திகள் காட்டப்படுகின்றன.'
+  },
+  'intake.queue_status.approved': { en: 'Approved', ta: 'அங்கீகரிக்கப்பட்டது' },
+  'intake.queue_status.rejected': { en: 'Rejected', ta: 'நிராகரிக்கப்பட்டது' },
+  'intake.queue_status.pending': { en: 'Pending', ta: 'நிலுவையில்' },
+  'intake.manual_order.customer_required': { en: 'Select a customer before submitting.', ta: 'சமர்பிக்கும் முன் வாடிக்கையாளரை தேர்ந்தெடுக்கவும்.' },
 
   // GROUP 21 — Packing / dispatch labels (volunteer screens)
   'packing.fcfs_rank_label': { en: 'FCFS Rank', ta: 'FCFS தரவரிசை' }, // TA: REVIEW REQUIRED
@@ -501,8 +520,8 @@ export const translations = {
   // GROUP 22 — WhatsApp copyable templates
   // (Mark all Tamil values: // TA: CONFIRM WITH OPERATOR IN C5 SESSION)
   'template.produce_list.header': {
-    en: 'Gudalur Organic Market\nProduce List for the week of {{marketDate}}\n',
-    ta: 'கூடலூர் ஆர்கானிக் சந்தை\nஇந்த வார விளைவு பட்டியல் ({{marketDate}})\n',
+    en: 'Gudmart\nProduce List for the week of {{marketDate}}\n',
+    ta: 'Gudmart\nஇந்த வார விளைவு பட்டியல் ({{marketDate}})\n',
   }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
   'template.produce_list.item_line': {
     en: '{{productName}} - {{pricePerUnit}} per {{unit}}\n',
@@ -627,6 +646,10 @@ export const translations = {
     en: 'Correction window closed — a price difference has already been confirmed',
     ta: 'திருத்த சாளரம் மூடப்பட்டது — ஒரு விலை வேறுபாடு ஏற்கனவே உறுதிப்படுத்தப்பட்டது',
   }, // TA: REVIEW REQUIRED
+  'reconciliation.ordered_label': { en: 'Ordered', ta: 'ஆர்டர்' },
+  'reconciliation.delivered_label': { en: 'Delivered', ta: 'வழங்கப்பட்டது' },
+  'reconciliation.diff_label': { en: 'Diff', ta: 'வித்தியாசம்' },
+  'reconciliation.per_unit_suffix': { en: '/unit', ta: '/அலகு' },
   'reconciliation.close_blocked_header': {
     en: 'Week cannot be closed until the following are resolved:',
     ta: 'கீழ்க்காணும் பிரச்சினைகள் தீர்க்கப்படும் வரை வாரத்தை மூட முடியாது:', // TA: REVIEW REQUIRED
@@ -651,7 +674,7 @@ export const translations = {
   'error.boundary.title': { en: 'Something went wrong', ta: 'ஏதோ தவறு நடந்தது' },
   'error.boundary.body': { en: 'Please refresh the page.', ta: 'பக்கத்தை புதுப்பிக்கவும்.' },
 
-  'app.name': { en: 'Gudalur Organic Market', ta: 'கூடலூர் ஆர்கானிக் சந்தை' },
+  'app.name': { en: 'Gudmart', ta: 'Gudmart' },
 
   // GROUP 28 — Registration screens
   'registration.customer.title': { en: 'Customer Registration', ta: 'வாடிக்கையாளர் பதிவு' },
@@ -697,5 +720,91 @@ export const translations = {
   'login.password.placeholder': { en: 'Enter your password', ta: 'உங்கள் கடவுச்சொல்லை உள்ளிடுங்கள்' },
   'login.submit': { en: 'Sign in', ta: 'உள்நுழை' },
   'login.error': { en: 'Invalid email or password.', ta: 'தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்.' },
+  'login.show_password': { en: 'Show password', ta: 'கடவுச்சொல்லைக் காட்டு' },
+  'login.hide_password': { en: 'Hide password', ta: 'கடவுச்சொல்லை மறை' },
+  'login.forgot_password': { en: 'Forgot password?', ta: 'கடவுச்சொல் மறந்துவிட்டதா?' },
+  'auth.forgot_password': { en: 'Forgot password?', ta: 'கடவுச்சொல் மறந்துவிட்டதா?' },
+  'auth.reset_password': { en: 'Reset Password', ta: 'கடவுச்சொல்லை மீட்டமை' },
+  'auth.reset_email_sent': { en: 'Password reset email sent. Check your inbox.', ta: 'கடவுச்சொல் மீட்டமை மின்னஞ்சல் அனுப்பப்பட்டது. உங்கள் inbox-ஐ சரிபாருங்கள்.' },
+  'auth.enter_email': { en: 'Enter your email address', ta: 'உங்கள் மின்னஞ்சல் முகவரியை உள்ளிடுங்கள்' },
+  'auth.back_to_login': { en: 'Back to login', ta: 'உள்நுழைவுக்குத் திரும்பு' },
+  'auth.logout': { en: 'Log out', ta: 'வெளியேறு' },
+
+  // GROUP — Week setup (create week form)
+  'week_setup.market_date.label': { en: 'Market date', ta: 'சந்தை தேதி' },
+  'week_setup.opening_cash.label': { en: 'Opening cash balance (₹)', ta: 'தொடக்க பண இருப்பு (₹)' },
+  'week_setup.opening_bank.label': { en: 'Opening bank balance (₹)', ta: 'தொடக்க வங்கி இருப்பு (₹)' },
+  'week_setup.opening_balance.helper': {
+    en: 'Enter amount in rupees. Stored as paise in the system.',
+    ta: 'தொகையை ரூபாயில் உள்ளிடுங்கள். கணினியில் பைசாவாக சேமிக்கப்படும்.',
+  },
+  'week_setup.create_week.button': { en: 'Create week', ta: 'வாரத்தை உருவாக்கு' },
+  'week_setup.empty_produce_list': {
+    en: 'No produce items yet',
+    ta: 'இன்னும் விளைவு உருப்புகள் இல்லை',
+  },
+  'week_setup.add_first_item_hint': {
+    en: 'Add your first item using the form below.',
+    ta: 'கீழுள்ள படிவத்தில் முதல் உருப்பை சேர்க்கவும்.',
+  },
+  'week_setup.add_item.title': { en: 'Add item', ta: 'உருப்பை சேர்' },
+  'week_setup.product.label': { en: 'Product', ta: 'பொருள்' },
+  'week_setup.unit.label': { en: 'Unit', ta: 'அலகு' },
+  'week_setup.price.label': { en: 'Price per unit (₹)', ta: 'ஒரு அலகிற்கு விலை (₹)' },
+  'week_setup.price.placeholder': { en: 'e.g. 50', ta: 'எ.கா. 50' },
+  'week_setup.add_item.button': { en: 'Add to produce list', ta: 'விளைவு பட்டியலில் சேர்' },
+  'week_setup.item_count': { en: '{{count}} items', ta: '{{count}} உருப்புகள்' },
+  'week_setup.duplicate_item_warning': {
+    en: 'This product is already on the produce list for this week.',
+    ta: 'இந்த பொருள் இந்த வாரத்தின் விளைவு பட்டியலில் ஏற்கனவே உள்ளது.',
+  },
+  'week_setup.add_new_product': {
+    en: 'Add new product: {{name}}',
+    ta: 'புதிய பொருளை சேர்: {{name}}',
+  },
+
+  // GROUP — Dashboard
+  'dashboard.blockers.header': { en: 'Blockers', ta: 'தடைகள்' },
+  'dashboard.no_active_week.title': { en: 'No Active Week', ta: 'செயலில் வாரம் இல்லை' },
+  'dashboard.no_active_week.body': { en: 'Create a new week to get started.', ta: 'தொடங்க புதிய வாரத்தை உருவாக்கவும்.' },
+  'dashboard.no_active_week.create_button': { en: 'Create Week', ta: 'வாரத்தை உருவாக்கு' },
+
+  // Dashboard Zone 2 — state-contextual stat labels
+  'dashboard.stat.intake_pending': { en: 'Pending Intake', ta: 'நிலுவையில் உள்ளீடு' },
+  'dashboard.stat.confirmed_orders': { en: 'Confirmed Orders', ta: 'உறுதிப்படுத்தப்பட்ட ஆர்டர்கள்' },
+  'dashboard.stat.pending_payment': { en: 'Pending Payment', ta: 'கட்டணம் நிலுவையில்' },
+  'dashboard.stat.produce_items': { en: 'Produce Items', ta: 'விளைவு உருப்புகள்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.registered_customers': { en: 'Registered Customers', ta: 'பதிவு செய்யப்பட்ட வாடிக்கையாளர்கள்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.total_order_value': { en: 'Total Order Value', ta: 'மொத்த ஆர்டர் மதிப்பு' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.farmer_assignments': { en: 'Farmer Assignments', ta: 'விவசாயி நியமனங்கள்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.assignments_complete': { en: 'Set', ta: 'அமைக்கப்பட்டது' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.assignments_pending': { en: 'Not Set', ta: 'அமைக்கப்படவில்லை' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.deliveries_recorded': { en: 'Deliveries Recorded', ta: 'பதிவு செய்யப்பட்ட டெலிவரிகள்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.deliveries_outstanding': { en: 'Outstanding', ta: 'நிலுவையில்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.walkin_count': { en: 'Walk-in Sales', ta: 'நேரடி விற்பனை' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.walkin_total': { en: 'Walk-in Total', ta: 'நேரடி விற்பனை மொத்தம்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.price_diffs_unresolved': { en: 'Unresolved Price Diffs', ta: 'தீர்க்கப்படாத விலை வேறுபாடுகள்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.farmer_payments_unpaid': { en: 'Unpaid Farmer Payments', ta: 'செலுத்தப்படாத விவசாயி பணம்' }, // TA: REVIEW REQUIRED
+
+  // Dashboard Zone 3 — CTA labels
+  'dashboard.cta.edit_produce_list': { en: 'Edit Produce List', ta: 'விளைவு பட்டியலை திருத்து' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.review_intake_queue': { en: 'Review Intake Queue', ta: 'வரிசையை சரிபார்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.view_orders': { en: 'View Orders', ta: 'ஆர்டர்களை பார்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.manage_wallets': { en: 'Manage Wallets', ta: 'வாலட்களை நிர்வகி' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.set_farmer_assignments': { en: 'Set Farmer Assignments', ta: 'விவசாயி நியமனங்களை அமை' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.view_order_summary': { en: 'View Order Summary', ta: 'ஆர்டர் சுருக்கம் பார்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.record_deliveries': { en: 'Record Deliveries', ta: 'டெலிவரிகளை பதிவு செய்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.view_packing_list': { en: 'View Packing List', ta: 'பேக்கிங் பட்டியலை பார்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.record_walkin_sale': { en: 'Record Walk-in Sale', ta: 'நேரடி விற்பனை பதிவு செய்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.resolve_price_diffs': { en: 'Resolve Price Differences', ta: 'விலை வேறுபாடுகளை தீர்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.record_farmer_payments': { en: 'Record Farmer Payments', ta: 'விவசாயி பணம் பதிவு செய்' }, // TA: REVIEW REQUIRED
+  'dashboard.cta.view_financial_summary': { en: 'View Financial Summary', ta: 'நிதி சுருக்கம் பார்' }, // TA: REVIEW REQUIRED
+  'nav.orders': { en: 'Orders', ta: 'ஆர்டர்கள்' },
+  'nav.wallet': { en: 'Wallet', ta: 'வாலட்' },
+  'nav.delivery': { en: 'Delivery', ta: 'டெலிவரி' },
+  'sse.status.polling': { en: 'Polling', ta: 'போலிங்' },
+
+  'theme.switch_to_dark': { en: 'Switch to dark mode', ta: 'இருண்ட பயன்முறைக்கு மாறு' },
+  'theme.switch_to_light': { en: 'Switch to light mode', ta: 'ஒளி பயன்முறைக்கு மாறு' },
 };
 

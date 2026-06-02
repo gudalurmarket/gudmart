@@ -31,9 +31,9 @@ export default function Registrations () {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-full bg-[#F0EDE8] p-4 pb-24">
+    <div className="min-h-full bg-[--color-background] p-4 pb-24">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-[--color-text-primary]">
           {t('nav.registrations')}
         </h1>
         <StateMachineBadge state={state} />
@@ -45,15 +45,15 @@ export default function Registrations () {
             key={path}
             type="button"
             onClick={() => navigate(path)}
-            className="flex items-center justify-between rounded-xl border border-[#E8E4DF] bg-white p-5 text-left shadow-sm hover:border-[#2D5A1B] hover:shadow-md transition-all"
+            className="flex items-center justify-between rounded-xl border border-[--color-border] bg-[--color-surface] p-5 text-left shadow-sm hover:border-[--color-primary] hover:shadow-md transition-all"
           >
             <div className="flex items-center gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0EDE8] text-[#2D5A1B]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[--color-background] text-[--color-primary]">
                 <Icon size={20} strokeWidth={1.5} />
               </span>
-              <span className="text-sm font-medium text-gray-900">{t(titleKey)}</span>
+              <span className="text-sm font-medium text-[--color-text-primary]">{t(titleKey)}</span>
             </div>
-            <ChevronRight size={18} strokeWidth={1.5} className="shrink-0 text-gray-400" />
+            <ChevronRight size={18} strokeWidth={1.5} className="shrink-0 text-[--color-text-disabled]" />
           </button>
         ))}
       </div>

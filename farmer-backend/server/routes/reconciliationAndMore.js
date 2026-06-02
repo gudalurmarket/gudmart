@@ -11,6 +11,7 @@ const Farmer = require('../models/Farmer')
 const LocalFarmerInbound = require('../models/LocalFarmerInbound')
 const WeeklySummary = require('../models/WeeklySummary')
 const WalletEngine = require('../modules/walletEngine')
+const { bootstrapFarmerPayments } = require('../modules/bootstrapFarmerPayments')
 const {
   AppError,
   OrderNotFoundError,
@@ -156,7 +157,10 @@ async function reconciliationAndMoreRoutes (fastify) {
   }, async (request) => {
     const { weekId } = request.params
 
-    const orders = await CustomerOrder.find({ week_id: weekId })
+    const orders = await CustomerOrder.find({
+      week_id: weekId,
+      status: { $ne: 'cancelled' }
+    })
       .select('order_id customer_id line_items')
       .lean()
 
@@ -489,7 +493,21 @@ async function reconciliationAndMoreRoutes (fastify) {
       }
     }
   }, async (request) => {
-    const payments = await FarmerPayment.find({ week_id: request.params.weekId }).lean()
+    const { weekId } = request.params
+
+    const week = await MarketWeek.findOne({ week_id: weekId }).select('state').lean()
+    if (week?.state === 'reconciliation') {
+      try {
+        await bootstrapFarmerPayments(weekId, request.user.uid)
+      } catch (err) {
+        request.log.error(
+          { err, weekId },
+          'bootstrapFarmerPayments failed — manual recovery required'
+        )
+      }
+    }
+
+    const payments = await FarmerPayment.find({ week_id: weekId }).lean()
     const farmerIds = [...new Set(payments.map(p => p.farmer_id))]
     const farmers = await Farmer.find({ farmer_id: { $in: farmerIds } })
       .select('farmer_id name')

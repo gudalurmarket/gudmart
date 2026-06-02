@@ -13,14 +13,14 @@ export default function IntakeQueueHeader ({ count, sseStatus }) {
   const sseKey = SSE_STATUS_KEYS[sseStatus]
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[--color-border] pb-3">
       <div className="flex flex-wrap items-center gap-3">
         <Inbox size={24} strokeWidth={1.5} className="text-[--color-primary]" aria-hidden="true" />
         <h1 className="text-xl font-semibold text-[--color-text-primary]">
           {t('nav.order_intake')}
         </h1>
         <span
-          className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full bg-[--color-primary] px-2.5 text-sm font-medium text-white"
+          className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full bg-[--color-primary] px-2.5 text-sm font-medium text-[--color-text-inverse]"
           aria-label={t('nav.order_intake')}
         >
           {count}

@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Provide 100vh fallback for browsers that don't support dvh units */
+  .min-h-dvh {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Hide scrollbar while preserving scroll functionality */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 :root {
   --color-background: #f0ede8;
   --color-surface: #ffffff;
@@ -19,7 +35,42 @@
   --color-text-disabled: #b0a99f;
   --color-text-inverse: #ffffff;
   --color-success: #2d5a1b;
+  --color-success-light: #e8f5e2;
+  --color-info: #1d4ed8;
+  --color-info-light: #dbeafe;
   --color-secondary: #6b6459;
+}
+
+html[data-theme="dark"] {
+  /* Brand — warm forest green, brightened just enough for dark contrast */
+  --color-primary:          #6aaf4e;
+  --color-primary-dark:     #4e8c38;
+  --color-primary-light:    #1e3318;
+
+  --color-secondary:        #b08a5a;
+  --color-secondary-dark:   #8a6b3e;
+
+  /* Surfaces — warm dark browns/taupes, NOT cold blue-grey slates */
+  --color-background:       #1a1714;   /* Deep warm near-black */
+  --color-surface:          #242019;   /* Warm dark brown surface */
+  --color-surface-raised:   #2e2a22;   /* Slightly elevated warm surface */
+  --color-border:           #3d3830;   /* Warm dark border */
+
+  /* Semantic — same hues, dark-adapted */
+  --color-error:            #f87171;
+  --color-error-light:      #3b1212;
+  --color-warning:          #fbbf24;
+  --color-warning-light:    #3b2800;
+  --color-success:          #4ade80;
+  --color-success-light:    #0f2b14;
+  --color-info:             #60a5fa;
+  --color-info-light:       #0d1f3b;
+
+  /* Text — warm off-whites, not pure white */
+  --color-text-primary:     #e8e3db;
+  --color-text-secondary:   #9b9087;
+  --color-text-disabled:    #5c5650;
+  --color-text-inverse:     #1a1714;
 }
 
 @layer base {
@@ -71,6 +122,49 @@
 .badge-closed {
   background: #d1fae5;
   color: #065f46;
+}
+
+/* Dark-mode badge overrides */
+html[data-theme="dark"] .badge-setup          { background: #2a2824; color: #b0aa9e; }
+html[data-theme="dark"] .badge-open           { background: #0d1f3b; color: #93c5fd; }
+html[data-theme="dark"] .badge-locked         { background: #3b2800; color: #fcd34d; }
+html[data-theme="dark"] .badge-delivery       { background: #1e1030; color: #c4b5fd; }
+html[data-theme="dark"] .badge-market-day     { background: #2b1500; color: #fdba74; }
+html[data-theme="dark"] .badge-reconciliation { background: #3b0f0f; color: #fca5a5; }
+html[data-theme="dark"] .badge-closed         { background: #0a2016; color: #6ee7b7; }
+
+/* Dark-mode input and secondary button surface fixes */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+/* Native date picker — visible indicator and correct popup theme */
+input[type="date"].input-date {
+  min-height: 44px;
+  background-color: var(--color-surface);
+  color-scheme: light;
+  padding-right: 2.75rem;
+}
+
+html[data-theme="dark"] input[type="date"].input-date {
+  color-scheme: dark;
+}
+
+input[type="date"].input-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.9;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+html[data-theme="dark"] .btn-secondary {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .font-tamil {

@@ -107,6 +107,21 @@ async function buildApp (opts = {}) {
     startupLog(`${id}b`, `after register ${label}`)
   }
 
+  // SPA fallback — serve index.html for all non-API, non-webhook paths so
+  // React Router deep links (e.g. /operator/dashboard) work on refresh and direct URL entry.
+  fastify.setNotFoundHandler((request, reply) => {
+    const pathname = request.url.split('?')[0]
+    if (pathname.startsWith('/api/') || pathname.startsWith('/webhook/')) {
+      return reply.status(404).send({
+        code: 'NOT_FOUND',
+        httpStatus: 404,
+        message: 'Not found',
+        details: {}
+      })
+    }
+    return reply.sendFile('index.html')
+  })
+
   startupLog('STARTUP-37', 'before registerErrorHandler()')
   registerErrorHandler(fastify)
   startupLog('STARTUP-38', 'after registerErrorHandler()')

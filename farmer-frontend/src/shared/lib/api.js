@@ -42,6 +42,7 @@ const ERROR_CODE_MAP = {
   UNKNOWN_SENDER: UnknownSenderError,
   WEEK_NOT_FOUND: NotFoundError,
   MARKET_WEEK_NOT_FOUND: NotFoundError,
+  SUMMARY_NOT_FOUND: NotFoundError,
   ORDER_NOT_FOUND: NotFoundError,
   CUSTOMER_NOT_FOUND: NotFoundError,
   DUPLICATE_PHONE: DuplicatePhoneError,

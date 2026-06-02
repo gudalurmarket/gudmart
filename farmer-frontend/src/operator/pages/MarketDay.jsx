@@ -37,8 +37,8 @@ const UNIT_TRANSLATION_KEYS = {
 }
 
 const CHANNEL_BADGE_CLASS = {
-  [PAYMENT_CHANNELS.CASH]: 'bg-gray-100 text-gray-600',
-  [PAYMENT_CHANNELS.UPI]: 'bg-blue-50 text-blue-600',
+  [PAYMENT_CHANNELS.CASH]: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
+  [PAYMENT_CHANNELS.UPI]: 'bg-[--color-info-light] text-[--color-info]',
 }
 
 function formatTime (isoString, lang) {
@@ -69,8 +69,8 @@ function ChannelPills ({ channel, onChange, t, disabled }) {
           onClick={() => onChange(ch)}
           className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
             channel === ch
-              ? 'bg-[#2D5A1B] text-white'
-              : 'border border-[#E8E4DF] bg-white text-gray-600'
+              ? 'bg-[--color-primary] text-[--color-text-inverse]'
+              : 'border border-[--color-border] bg-[--color-surface] text-[--color-text-secondary]'
           }`}
         >
           {t(ch === PAYMENT_CHANNELS.CASH ? 'wallet.channel.cash' : 'wallet.channel.upi')}
@@ -82,9 +82,9 @@ function ChannelPills ({ channel, onChange, t, disabled }) {
 
 function MarketDayStatCard ({ label, value }) {
   return (
-    <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-left">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[#2D5A1B]">{value}</p>
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-left">
+      <p className="text-sm text-[--color-text-secondary]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[--color-primary]">{value}</p>
     </div>
   )
 }
@@ -152,7 +152,7 @@ function ProduceItemSearch ({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="mb-1 block text-sm text-gray-600">{t('market_day.item_label')}</label>
+      <label className="mb-1 block text-sm text-[--color-text-secondary]">{t('market_day.item_label')}</label>
       <input
         type="text"
         value={productQuery}
@@ -163,16 +163,16 @@ function ProduceItemSearch ({
           setDropdownOpen(true)
         }}
         onFocus={() => setDropdownOpen(true)}
-        className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
         autoComplete="off"
       />
       {dropdownOpen && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-[#E8E4DF] bg-white py-1 shadow-md">
+        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-[--color-border] bg-[--color-surface] py-1 shadow-md">
           {filteredItems.map((item) => (
             <li key={item.produceItemId ?? item.productId}>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-[--color-surface-raised]"
                 onClick={() => selectProduce(item)}
               >
                 {item.nameEn}
@@ -183,7 +183,7 @@ function ProduceItemSearch ({
             <li>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm font-medium text-[#2D5A1B] hover:bg-gray-50"
+                className="w-full px-3 py-2 text-left text-sm font-medium text-[--color-primary] hover:bg-[--color-surface-raised]"
                 onClick={selectNewItem}
               >
                 {addNewLabel}
@@ -191,7 +191,7 @@ function ProduceItemSearch ({
             </li>
           )}
           {filteredItems.length === 0 && !showNewItemOption && productQuery.trim() && (
-            <li className="px-3 py-2 text-sm text-gray-500">{t('order.empty_state')}</li>
+            <li className="px-3 py-2 text-sm text-[--color-text-secondary]">{t('order.empty_state')}</li>
           )}
         </ul>
       )}
@@ -250,30 +250,30 @@ function BalancePaymentRow ({
   }
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <button
         type="button"
         className="flex w-full items-start justify-between gap-3 text-left"
         onClick={onToggle}
       >
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-gray-900">{order.customerName}</p>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <p className="font-medium text-[--color-text-primary]">{order.customerName}</p>
+          <p className="mt-0.5 text-sm text-[--color-text-secondary]">
             {t('market_day.order_value_label')}
             {': '}
             {formatINROptional(order.orderValue)}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-xs text-gray-500">{t('market_day.balance_due_label')}</p>
-          <p className="font-semibold text-amber-600">{formatINR(balanceDue)}</p>
+          <p className="text-xs text-[--color-text-secondary]">{t('market_day.balance_due_label')}</p>
+          <p className="font-semibold text-[--color-warning]">{formatINR(balanceDue)}</p>
         </div>
       </button>
 
       {expanded && canEdit && (
-        <form className="mt-4 space-y-3 border-t border-[#E8E4DF] pt-4" onSubmit={handleSubmit}>
+        <form className="mt-4 space-y-3 border-t border-[--color-border] pt-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-1 block text-sm text-gray-600">
+            <label className="mb-1 block text-sm text-[--color-text-secondary]">
               {t('market_day.payment_amount_label')}
             </label>
             <input
@@ -281,22 +281,22 @@ function BalancePaymentRow ({
               inputMode="decimal"
               value={amountInput}
               onChange={(e) => setAmountInput(e.target.value)}
-              className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <p className="mb-2 text-sm text-gray-600">{t('field.channel')}</p>
+            <p className="mb-2 text-sm text-[--color-text-secondary]">{t('field.channel')}</p>
             <ChannelPills channel={channel} onChange={setChannel} t={t} />
           </div>
           {errorKey && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-[--color-error]" role="alert">
               {t(errorKey)}
             </p>
           )}
           <button
             type="submit"
             disabled={submitting || !amountValid}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2D5A1B] py-3 text-sm font-medium text-white disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[--color-primary] py-3 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
           >
             {submitting && <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />}
             {t('market_day.record_payment_button')}
@@ -381,8 +381,8 @@ function LocalFarmerInboundForm ({
   if (!canEdit) return null
 
   return (
-    <div className="rounded-xl border border-[#E8E4DF] bg-white p-4">
-      <h3 className="text-sm font-semibold text-[#2D5A1B]">
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
+      <h3 className="text-sm font-semibold text-[--color-primary]">
         {t('market_day.inbound_form_title')}
       </h3>
       <form className="mt-3 space-y-3" onSubmit={handleSubmit} noValidate>
@@ -399,7 +399,7 @@ function LocalFarmerInboundForm ({
           t={t}
         />
         <div>
-          <label className="mb-1 block text-sm text-gray-600">
+          <label className="mb-1 block text-sm text-[--color-text-secondary]">
             {t('market_day.inbound_qty_label')}
           </label>
           <input
@@ -408,17 +408,17 @@ function LocalFarmerInboundForm ({
             step={0.1}
             value={qty}
             onChange={(e) => setQty(e.target.value)}
-            className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-gray-600">
+          <label className="mb-1 block text-sm text-[--color-text-secondary]">
             {t('field.unit')}
           </label>
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
           >
             {PRODUCE_UNITS.map((u) => (
               <option key={u} value={u}>
@@ -428,7 +428,7 @@ function LocalFarmerInboundForm ({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-gray-600">
+          <label className="mb-1 block text-sm text-[--color-text-secondary]">
             {t('market_day.inbound_price_label')}
           </label>
           <input
@@ -436,18 +436,18 @@ function LocalFarmerInboundForm ({
             inputMode="decimal"
             value={priceRupees}
             onChange={(e) => setPriceRupees(e.target.value)}
-            className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
           />
         </div>
         {errorKey && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-[--color-error]" role="alert">
             {t(errorKey)}
           </p>
         )}
         <button
           type="submit"
           disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2D5A1B] py-3 text-sm font-medium text-white disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[--color-primary] py-3 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
         >
           {submitting && <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />}
           {t('market_day.inbound_submit_button')}
@@ -465,16 +465,16 @@ function InboundRecordRow ({ record, productNameById, t, lang }) {
     '—'
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
-      <p className="font-medium text-gray-900">{displayName}</p>
-      <p className="mt-1 text-sm text-gray-600">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
+      <p className="font-medium text-[--color-text-primary]">{displayName}</p>
+      <p className="mt-1 text-sm text-[--color-text-secondary]">
         {formatQtyWithUnit(record.inboundQty, record.unit, t)}
         {' · '}
         {formatINR(record.pricePerUnit)}
         {' / '}
         {t(UNIT_TRANSLATION_KEYS[record.unit] ?? 'unit.kg')}
       </p>
-      <p className="mt-1 text-xs text-gray-400">
+      <p className="mt-1 text-xs text-[--color-text-disabled]">
         {formatTime(record.createdAt, lang)}
       </p>
     </div>
@@ -584,8 +584,8 @@ function WalkInSaleForm ({
   if (!canEdit) return null
 
   return (
-    <div className="rounded-xl border border-[#E8E4DF] bg-white p-4">
-      <h3 className="text-sm font-semibold text-[#2D5A1B]">
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
+      <h3 className="text-sm font-semibold text-[--color-primary]">
         {t('market_day.walkin_form_title')}
       </h3>
       <form className="mt-3 space-y-3" onSubmit={handleSubmit} noValidate>
@@ -603,7 +603,7 @@ function WalkInSaleForm ({
         />
 
         <div>
-          <p className="mb-2 text-sm text-gray-600">{t('market_day.inventory_source_label')}</p>
+          <p className="mb-2 text-sm text-[--color-text-secondary]">{t('market_day.inventory_source_label')}</p>
           <div className="flex gap-2">
             {['outstation', 'local_farmer'].map((src) => (
               <button
@@ -612,8 +612,8 @@ function WalkInSaleForm ({
                 onClick={() => setInventorySource(src)}
                 className={`flex-1 rounded-full px-3 py-2 text-sm font-medium ${
                   inventorySource === src
-                    ? 'bg-[#2D5A1B] text-white'
-                    : 'border border-[#E8E4DF] bg-white text-gray-600'
+                    ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                    : 'border border-[--color-border] bg-[--color-surface] text-[--color-text-secondary]'
                 }`}
               >
                 {t(
@@ -628,13 +628,13 @@ function WalkInSaleForm ({
 
         {inventorySource === 'local_farmer' && (
           <div>
-            <label className="mb-1 block text-sm text-gray-600">
+            <label className="mb-1 block text-sm text-[--color-text-secondary]">
               {t('market_day.walkin_farmer_label')}
             </label>
             <select
               value={farmerId}
               onChange={(e) => setFarmerId(e.target.value)}
-              className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               required
             >
               <option value="">—</option>
@@ -648,7 +648,7 @@ function WalkInSaleForm ({
         )}
 
         <div>
-          <label className="mb-1 block text-sm text-gray-600">
+          <label className="mb-1 block text-sm text-[--color-text-secondary]">
             {t('market_day.walkin_qty_label')}
           </label>
           <input
@@ -658,12 +658,12 @@ function WalkInSaleForm ({
             required
             value={qty}
             onChange={(e) => setQty(e.target.value)}
-            className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm text-gray-600">
+          <label className="mb-1 block text-sm text-[--color-text-secondary]">
             {t('market_day.walkin_amount_label')}
           </label>
           <input
@@ -672,21 +672,21 @@ function WalkInSaleForm ({
             required
             value={amountInput}
             onChange={(e) => setAmountInput(e.target.value)}
-            className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-gray-600">{t('field.channel')}</p>
+          <p className="mb-2 text-sm text-[--color-text-secondary]">{t('field.channel')}</p>
           <ChannelPills channel={channel} onChange={setChannel} t={t} />
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-[--color-text-secondary]">
           <input
             type="checkbox"
             checked={showCustomer}
             onChange={(e) => setShowCustomer(e.target.checked)}
-            className="h-4 w-4 rounded border-[#E8E4DF]"
+            className="h-4 w-4 rounded border-[--color-border]"
           />
           {t('market_day.record_customer_details')}
         </label>
@@ -694,32 +694,32 @@ function WalkInSaleForm ({
         {showCustomer && (
           <>
             <div>
-              <label className="mb-1 block text-sm text-gray-600">
+              <label className="mb-1 block text-sm text-[--color-text-secondary]">
                 {t('market_day.walkin_customer_name_label')}
               </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-600">
+              <label className="mb-1 block text-sm text-[--color-text-secondary]">
                 {t('market_day.walkin_customer_phone_label')}
               </label>
               <input
                 type="tel"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               />
             </div>
           </>
         )}
 
         {errorKey && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-[--color-error]" role="alert">
             {t(errorKey)}
           </p>
         )}
@@ -727,7 +727,7 @@ function WalkInSaleForm ({
         <button
           type="submit"
           disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2D5A1B] py-3 text-sm font-medium text-white disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[--color-primary] py-3 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
         >
           {submitting && <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />}
           {t('market_day.walkin_submit_button')}
@@ -747,35 +747,35 @@ function WalkInSaleRow ({ sale, productMetaById, t, lang }) {
       : 'market_day.source.outstation'
   const sourceClass =
     sale.inventorySource === 'local_farmer'
-      ? 'bg-green-50 text-green-700'
-      : 'bg-blue-50 text-blue-700'
+      ? 'bg-[--color-success-light] text-[--color-success]'
+      : 'bg-[--color-info-light] text-[--color-info]'
   const channelKey =
     sale.channel === PAYMENT_CHANNELS.UPI ? 'wallet.channel.upi' : 'wallet.channel.cash'
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-gray-900">{productName}</p>
+          <p className="font-medium text-[--color-text-primary]">{productName}</p>
           <span
             className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sourceClass}`}
           >
             {t(sourceKey)}
           </span>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-[--color-text-secondary]">
             {formatQtyWithUnit(sale.qtySold, unit, t)}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-semibold text-[#2D5A1B]">
+          <p className="font-semibold text-[--color-primary]">
             {formatINROptional(sale.amountCollected)}
           </p>
           <span
-            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CHANNEL_BADGE_CLASS[sale.channel] ?? 'bg-gray-100 text-gray-600'}`}
+            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CHANNEL_BADGE_CLASS[sale.channel] ?? 'bg-[--color-surface-raised] text-[--color-text-secondary]'}`}
           >
             {t(channelKey)}
           </span>
-          <p className="mt-1 text-xs text-gray-400">{formatTime(sale.createdAt, lang)}</p>
+          <p className="mt-1 text-xs text-[--color-text-disabled]">{formatTime(sale.createdAt, lang)}</p>
         </div>
       </div>
     </div>
@@ -926,7 +926,7 @@ export default function MarketDay () {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#F0EDE8]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner />
       </div>
     )
@@ -934,13 +934,13 @@ export default function MarketDay () {
 
   if (loadErrorKey) {
     return (
-      <div className="bg-[#F0EDE8] p-4">
-        <div className="rounded-xl border border-red-200 bg-white p-6 text-center">
-          <p className="text-sm text-red-600">{t(loadErrorKey)}</p>
+      <div className="bg-[--color-background] p-4">
+        <div className="rounded-xl border border-[--color-error-light] bg-[--color-surface] p-6 text-center">
+          <p className="text-sm text-[--color-error]">{t(loadErrorKey)}</p>
           <button
             type="button"
             onClick={loadPage}
-            className="mt-4 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm text-white"
+            className="mt-4 rounded-xl bg-[--color-primary] px-4 py-2 text-sm text-[--color-text-inverse]"
           >
             {t('action.reload')}
           </button>
@@ -950,20 +950,20 @@ export default function MarketDay () {
   }
 
   return (
-    <div className="min-h-full bg-[#F0EDE8] pb-24">
-      <header className="border-b border-[#E8E4DF] bg-white px-4 py-4">
+    <div className="min-h-full bg-[--color-background] pb-24">
+      <header className="border-b border-[--color-border] bg-[--color-surface] px-4 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <StateMachineBadge state={currentState} />
           {marketDate && (
-            <p className="text-sm text-gray-600">{formatMarketDate(marketDate, lang)}</p>
+            <p className="text-sm text-[--color-text-secondary]">{formatMarketDate(marketDate, lang)}</p>
           )}
         </div>
         {!isMarketDay && currentState != null && (
-          <p className="mt-2 text-sm text-amber-600">{t('market_day.read_only_notice')}</p>
+          <p className="mt-2 text-sm text-[--color-warning]">{t('market_day.read_only_notice')}</p>
         )}
       </header>
 
-      <div className="mt-3 flex gap-1 border-b border-[#E8E4DF] bg-white px-2">
+      <div className="mt-3 flex gap-1 border-b border-[--color-border] bg-[--color-surface] px-2">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -971,8 +971,8 @@ export default function MarketDay () {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 border-b-2 px-2 py-3 text-center text-xs font-medium sm:text-sm ${
               activeTab === tab.id
-                ? 'border-[#2D5A1B] text-[#2D5A1B]'
-                : 'border-transparent text-gray-500'
+                ? 'border-[--color-primary] text-[--color-primary]'
+                : 'border-transparent text-[--color-text-secondary]'
             }`}
           >
             {t(tab.labelKey)}
@@ -985,8 +985,8 @@ export default function MarketDay () {
           <section>
             {ordersWithBalance.length === 0 ? (
               <div className="flex flex-col items-center py-12 text-center">
-                <CheckCircle size={32} strokeWidth={1.5} className="text-green-400" />
-                <p className="mt-3 text-sm text-gray-600">{t('market_day.no_balance_due')}</p>
+                <CheckCircle size={32} strokeWidth={1.5} className="text-[--color-success]" />
+                <p className="mt-3 text-sm text-[--color-text-secondary]">{t('market_day.no_balance_due')}</p>
               </div>
             ) : (
               ordersWithBalance.map((order) => (
@@ -1012,7 +1012,7 @@ export default function MarketDay () {
         {activeTab === 'inbound' && (
           <section className="space-y-4">
             {localFarmers.length === 0 ? (
-              <p className="text-sm text-gray-600">{t('market_day.no_local_farmers')}</p>
+              <p className="text-sm text-[--color-text-secondary]">{t('market_day.no_local_farmers')}</p>
             ) : (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -1023,8 +1023,8 @@ export default function MarketDay () {
                       onClick={() => setSelectedFarmerId(farmer.farmerId)}
                       className={`rounded-full px-4 py-2 text-sm font-medium ${
                         selectedFarmerId === farmer.farmerId
-                          ? 'bg-[#2D5A1B] text-white'
-                          : 'border border-[#E8E4DF] bg-white text-gray-600'
+                          ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                          : 'border border-[--color-border] bg-[--color-surface] text-[--color-text-secondary]'
                       }`}
                     >
                       {farmer.name}
@@ -1044,7 +1044,7 @@ export default function MarketDay () {
                 )}
 
                 {inboundForFarmer.length === 0 ? (
-                  <p className="text-sm text-gray-600">{t('market_day.no_inbound_records')}</p>
+                  <p className="text-sm text-[--color-text-secondary]">{t('market_day.no_inbound_records')}</p>
                 ) : (
                   inboundForFarmer.map((record) => (
                     <InboundRecordRow
@@ -1073,7 +1073,7 @@ export default function MarketDay () {
             />
 
             {walkInSales.length === 0 ? (
-              <p className="text-sm text-gray-600">{t('market_day.no_walkin_sales')}</p>
+              <p className="text-sm text-[--color-text-secondary]">{t('market_day.no_walkin_sales')}</p>
             ) : (
               <>
                 {walkInSales.map((sale) => (
@@ -1103,7 +1103,7 @@ export default function MarketDay () {
 
       {toast && (
         <div
-          className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md rounded-xl bg-[#2D5A1B] px-4 py-3 text-center text-sm text-white shadow-lg"
+          className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md rounded-xl bg-[--color-primary] px-4 py-3 text-center text-sm text-[--color-text-inverse] shadow-lg"
           role="status"
         >
           {t(toast.key)}

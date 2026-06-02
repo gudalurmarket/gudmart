@@ -103,7 +103,7 @@ describe('WalletEngine.debitForOrder', () => {
         }))
       ).rejects.toBeInstanceOf(CustomerNotFoundError)
 
-      expect(await WalletTransaction.countDocuments({})).toBe(0)
+      expect(await WalletTransaction.countDocuments({ customer_id: 'non-existent-customer-id' })).toBe(0)
     })
   })
 

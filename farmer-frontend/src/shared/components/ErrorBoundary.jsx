@@ -5,7 +5,7 @@ function DefaultFallback ({ error }) {
   const { t } = useLang()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[--color-background] p-6">
+    <div className="flex min-h-dvh items-center justify-center bg-[--color-background] p-6">
       <div className="w-full max-w-md rounded-lg bg-[--color-surface] p-6 shadow-md">
         <h1 className="text-xl font-semibold leading-tight text-[--color-text-primary]">
           {t('error.boundary.title')}
@@ -21,7 +21,7 @@ function DefaultFallback ({ error }) {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-md bg-[--color-primary] px-4 py-2 font-medium text-white hover:bg-[--color-primary-dark]"
+          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-md bg-[--color-primary] px-4 py-2 font-medium text-[--color-text-inverse] hover:bg-[--color-primary-dark]"
         >
           {t('action.reload')}
         </button>

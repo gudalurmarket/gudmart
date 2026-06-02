@@ -515,13 +515,14 @@ async function ordersAndIntakeRoutes (fastify) {
             type: 'array',
             minItems: 1,
             items: lineItemInputSchema
-          }
+          },
+          notes: { type: 'string', maxLength: 2000 }
         }
       }
     }
   }, async (request, reply) => {
     const { weekId } = request.params
-    const { customerId, lineItems } = request.body
+    const { customerId, lineItems, notes } = request.body
     const operatorId = request.user.uid
 
     const customer = await Customer.findOne({ customer_id: customerId }).lean()
@@ -543,7 +544,7 @@ async function ordersAndIntakeRoutes (fastify) {
 
     const orderStatus = debitOutcome.confirmed ? 'confirmed' : 'pending_payment'
 
-    await CustomerOrder.create({
+    const orderDoc = {
       order_id: orderId,
       week_id: weekId,
       customer_id: customerId,
@@ -556,7 +557,9 @@ async function ordersAndIntakeRoutes (fastify) {
       balance_cleared: false,
       line_items: embedded,
       created_by: operatorId
-    })
+    }
+    if (notes != null) orderDoc.notes = notes
+    await CustomerOrder.create(orderDoc)
 
     return reply.code(201).send({
       orderId,

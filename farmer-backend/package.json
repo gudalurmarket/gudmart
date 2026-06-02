@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "copy-pwa": "node scripts/copy-pwa.mjs",
     "dev": "nodemon server/server.js",
     "start": "node server/server.js",
     "test": "jest",

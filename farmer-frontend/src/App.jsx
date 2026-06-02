@@ -32,7 +32,7 @@ function RootRedirect () {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     )
@@ -67,6 +67,7 @@ function OperatorRoutes () {
         <Route path="reconciliation" element={<Reconciliation />} />
         <Route path="summary" element={<WeeklySummary />} />
         <Route path="setup" element={<WeekSetup />} />
+        <Route path="week-setup" element={<Navigate to="setup" replace />} />
         <Route path="registrations" element={<Registrations />} />
         <Route path="registrations/customers" element={<CustomerRegistration />} />
         <Route path="registrations/farmers" element={<FarmerRegistration />} />

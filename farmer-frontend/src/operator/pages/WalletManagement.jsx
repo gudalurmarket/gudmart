@@ -56,9 +56,9 @@ const CHANNEL_LABEL_KEYS = {
 }
 
 const CHANNEL_BADGE_CLASS = {
-  [PAYMENT_CHANNELS.CASH]: 'bg-gray-100 text-gray-600',
-  [PAYMENT_CHANNELS.UPI]: 'bg-blue-50 text-blue-600',
-  [PAYMENT_CHANNELS.SYSTEM]: 'bg-purple-50 text-purple-600',
+  [PAYMENT_CHANNELS.CASH]: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
+  [PAYMENT_CHANNELS.UPI]: 'bg-[--color-info-light] text-[--color-info]',
+  [PAYMENT_CHANNELS.SYSTEM]: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
 }
 
 function formatLedgerDateTime (isoString, lang) {
@@ -100,35 +100,35 @@ function LedgerRow ({ txn, olderTxn, t, lang }) {
   const runningBalance = txn.runningBalance ?? txn.running_balance
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900">{typeLabel}</p>
+          <p className="text-sm font-medium text-[--color-text-primary]">{typeLabel}</p>
           {channelKey && (
             <span
-              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CHANNEL_BADGE_CLASS[txn.channel] ?? 'bg-gray-100 text-gray-600'}`}
+              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CHANNEL_BADGE_CLASS[txn.channel] ?? 'bg-[--color-surface-raised] text-[--color-text-secondary]'}`}
             >
               {t(channelKey)}
             </span>
           )}
           {(txn.referenceNote ?? txn.reference_note) && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[--color-text-secondary]">
               {txn.referenceNote ?? txn.reference_note}
             </p>
           )}
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-[--color-text-disabled]">
             {formatLedgerDateTime(txn.createdAt ?? txn.created_at, lang)}
           </p>
         </div>
         <div className="shrink-0 text-right">
           <p
-            className={`text-sm font-semibold ${credit ? 'text-[#2D5A1B]' : 'text-red-600'}`}
+            className={`text-sm font-semibold ${credit ? 'text-[--color-primary]' : 'text-[--color-error]'}`}
           >
             {credit ? '+' : '−'}
             {formatINR(amountPaise)}
           </p>
           {typeof runningBalance === 'number' && (
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-[--color-text-secondary]">
               {t('wallet.ledger.running_balance')}
               {': '}
               {formatINR(runningBalance)}
@@ -142,10 +142,10 @@ function LedgerRow ({ txn, olderTxn, t, lang }) {
 
 function PendingOrdersPrompt ({ count, t, onDismiss, onGoToOrders }) {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="rounded-xl border border-[--color-warning-light] bg-[--color-warning-light] p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-amber-900">
+          <p className="text-sm text-[--color-warning]">
             {t('wallet.pending_orders_now_coverable')}
             {' '}
             <span className="font-semibold">({count})</span>
@@ -153,7 +153,7 @@ function PendingOrdersPrompt ({ count, t, onDismiss, onGoToOrders }) {
           <button
             type="button"
             onClick={onGoToOrders}
-            className="mt-2 text-sm font-medium text-[#2D5A1B] underline"
+            className="mt-2 text-sm font-medium text-[--color-primary] underline"
           >
             {t('wallet.go_to_orders')}
           </button>
@@ -161,7 +161,7 @@ function PendingOrdersPrompt ({ count, t, onDismiss, onGoToOrders }) {
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 rounded-lg p-1 text-amber-700 hover:bg-amber-100"
+          className="shrink-0 rounded-lg p-1 text-[--color-warning] hover:bg-[--color-warning-light]"
           aria-label={t('action.close')}
         >
           <X size={16} strokeWidth={1.5} />
@@ -205,7 +205,7 @@ function TopUpForm ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-[--color-text-secondary]">
           {t('wallet.topup.amount_label')}
         </label>
         <input
@@ -214,13 +214,13 @@ function TopUpForm ({
           value={amountInput}
           onChange={(e) => setAmountInput(e.target.value)}
           placeholder={t('wallet.topup.amount_placeholder')}
-          className="w-full rounded-xl border border-[#E8E4DF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2D5A1B]"
+          className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-3 py-2.5 text-sm outline-none focus:border-[--color-primary]"
           required
         />
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-gray-700">
+        <p className="mb-2 text-sm font-medium text-[--color-text-secondary]">
           {t('wallet.topup.channel_label')}
         </p>
         <div className="flex gap-2">
@@ -231,8 +231,8 @@ function TopUpForm ({
               onClick={() => setChannel(ch)}
               className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 channel === ch
-                  ? 'bg-[#2D5A1B] text-white'
-                  : 'border border-[#E8E4DF] bg-white text-gray-600'
+                  ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                  : 'border border-[--color-border] bg-[--color-surface] text-[--color-text-secondary]'
               }`}
             >
               {t(ch === PAYMENT_CHANNELS.CASH ? 'wallet.channel.cash' : 'wallet.channel.upi')}
@@ -243,7 +243,7 @@ function TopUpForm ({
 
       {channel === PAYMENT_CHANNELS.UPI && (
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-[--color-text-secondary]">
             {t('wallet.topup.reference_label')}
           </label>
           <input
@@ -251,7 +251,7 @@ function TopUpForm ({
             value={referenceNote}
             onChange={(e) => setReferenceNote(e.target.value)}
             placeholder={t('wallet.topup.reference_placeholder')}
-            className="w-full rounded-xl border border-[#E8E4DF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2D5A1B]"
+            className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-3 py-2.5 text-sm outline-none focus:border-[--color-primary]"
           />
         </div>
       )}
@@ -259,14 +259,14 @@ function TopUpForm ({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2D5A1B] py-3 text-sm font-medium text-white disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[--color-primary] py-3 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
       >
         {submitting && <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />}
         {t('wallet.topup.submit_button')}
       </button>
 
       {submitErrorKey && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-[--color-error]" role="alert">
           {t(submitErrorKey)}
         </p>
       )}
@@ -384,27 +384,27 @@ function CustomerWalletDetail ({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 rounded-lg p-1 text-gray-700 hover:bg-white/60"
+          className="flex items-center gap-1 rounded-lg p-1 text-[--color-text-secondary] hover:bg-[--color-surface]/60"
         >
           <ArrowLeft size={18} strokeWidth={1.5} />
         </button>
-        <h1 className="flex-1 text-lg font-semibold text-gray-900">
+        <h1 className="flex-1 text-lg font-semibold text-[--color-text-primary]">
           {customerName || customerId}
         </h1>
         <StateMachineBadge state={currentState} />
       </div>
 
       {loadErrorKey && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-[--color-error]" role="alert">
           {t(loadErrorKey)}
         </p>
       )}
 
-      <div className="rounded-2xl border border-[#E8E4DF] bg-white p-6">
-        <p className="text-sm text-gray-500">{t('wallet.current_balance')}</p>
+      <div className="rounded-2xl border border-[--color-border] bg-[--color-surface] p-6">
+        <p className="text-sm text-[--color-text-secondary]">{t('wallet.current_balance')}</p>
         <p
           className={`mt-1 text-4xl font-bold ${
-            walletBalance > 0 ? 'text-[#2D5A1B]' : 'text-gray-400'
+            walletBalance > 0 ? 'text-[--color-primary]' : 'text-[--color-text-disabled]'
           }`}
         >
           {formatINR(walletBalance)}
@@ -412,8 +412,8 @@ function CustomerWalletDetail ({
       </div>
 
       {topUpAllowed ? (
-        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">
+        <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
+          <h2 className="mb-4 text-base font-semibold text-[--color-text-primary]">
             {t('wallet.topup.title')}
           </h2>
           <TopUpForm
@@ -435,17 +435,17 @@ function CustomerWalletDetail ({
           )}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">{t('wallet.topup_not_available')}</p>
+        <p className="text-sm text-[--color-text-secondary]">{t('wallet.topup_not_available')}</p>
       )}
 
       <section>
-        <h2 className="mb-3 text-base font-semibold text-gray-900">
+        <h2 className="mb-3 text-base font-semibold text-[--color-text-primary]">
           {t('wallet.ledger.title')}
         </h2>
         {transactions.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Receipt size={28} strokeWidth={1.5} className="text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">{t('wallet.ledger.empty')}</p>
+            <Receipt size={28} strokeWidth={1.5} className="text-[--color-text-disabled]" />
+            <p className="mt-2 text-sm text-[--color-text-secondary]">{t('wallet.ledger.empty')}</p>
           </div>
         ) : (
           transactions.map((txn, index) => (
@@ -488,7 +488,7 @@ function CustomerList ({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-gray-900">{t('wallet.page_title')}</h1>
+        <h1 className="text-lg font-semibold text-[--color-text-primary]">{t('wallet.page_title')}</h1>
         <StateMachineBadge state={currentState} />
       </div>
 
@@ -497,13 +497,13 @@ function CustomerList ({
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder={t('wallet.customer_search.placeholder')}
-        className="w-full rounded-xl border border-[#E8E4DF] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#2D5A1B]"
+        className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-2.5 text-sm outline-none focus:border-[--color-primary]"
       />
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center py-12 text-center">
-          <Users size={32} strokeWidth={1.5} className="text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">{t('wallet.no_customers')}</p>
+          <Users size={32} strokeWidth={1.5} className="text-[--color-text-disabled]" />
+          <p className="mt-3 text-sm text-[--color-text-secondary]">{t('wallet.no_customers')}</p>
         </div>
       ) : (
         <ul className="list-none p-0">
@@ -514,23 +514,23 @@ function CustomerList ({
                 <button
                   type="button"
                   onClick={() => onSelectCustomer(customer.customerId)}
-                  className="mb-2 flex w-full items-center justify-between rounded-xl border border-[#E8E4DF] bg-white px-4 py-3 text-left"
+                  className="mb-2 flex w-full items-center justify-between rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3 text-left"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{customer.name}</p>
-                    <p className="text-xs text-gray-500">{customer.phone}</p>
+                    <p className="text-sm font-medium text-[--color-text-primary]">{customer.name}</p>
+                    <p className="text-xs text-[--color-text-secondary]">{customer.phone}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span
                       className={`text-sm ${
                         balance > 0
-                          ? 'font-semibold text-[#2D5A1B]'
-                          : 'text-gray-400'
+                          ? 'font-semibold text-[--color-primary]'
+                          : 'text-[--color-text-disabled]'
                       }`}
                     >
                       {formatINR(balance)}
                     </span>
-                    <ChevronRight size={16} strokeWidth={1.5} className="text-gray-400" />
+                    <ChevronRight size={16} strokeWidth={1.5} className="text-[--color-text-disabled]" />
                   </div>
                 </button>
               </li>
@@ -625,16 +625,16 @@ export default function WalletManagement () {
 
   if (weekLoading || (!customerId && customersLoading)) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#F0EDE8]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full bg-[#F0EDE8] p-4 pb-24">
+    <div className="min-h-full bg-[--color-background] p-4 pb-24">
       {customersErrorKey && !customerId && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-[--color-error]" role="alert">
           {t(customersErrorKey)}
         </p>
       )}
@@ -664,10 +664,10 @@ export default function WalletManagement () {
 
       {toastKey && (
         <div
-          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[#E8E4DF] bg-white p-4 shadow-lg"
+          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[--color-border] bg-[--color-surface] p-4 shadow-lg"
           role="status"
         >
-          <p className="text-sm font-medium text-gray-800">{t(toastKey)}</p>
+          <p className="text-sm font-medium text-[--color-text-primary]">{t(toastKey)}</p>
         </div>
       )}
     </div>

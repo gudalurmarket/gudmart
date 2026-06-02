@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, Copy, Package, Plus, Trash2 } from 'lucide-react'
+import { Copy, Loader2, Package, Plus, Trash2 } from 'lucide-react'
+import { subscribeActiveWeekChanged } from '../../shared/hooks/useWeekState.js'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
@@ -104,7 +105,7 @@ function FarmerAssignmentRow ({
       <select
         value={row.farmerId}
         onChange={(e) => onFarmerChange(row.rowKey, e.target.value)}
-        className="min-h-[44px] flex-1 rounded-lg border border-[#E8E4DF] px-2 py-2 text-sm"
+        className="min-h-[44px] flex-1 rounded-lg border border-[--color-border] px-2 py-2 text-sm"
       >
         <option value="">{t('field.farmer_name')}</option>
         {farmers.map((farmer) => (
@@ -120,9 +121,9 @@ function FarmerAssignmentRow ({
           step="any"
           value={row.qty}
           onChange={(e) => onQtyChange(row.rowKey, e.target.value)}
-          className="w-24 min-h-[44px] rounded-lg border border-[#E8E4DF] px-2 py-2 text-sm"
+          className="w-24 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-2 text-sm"
         />
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[--color-text-secondary]">
           {UNIT_TRANSLATION_KEYS[unit] ? t(UNIT_TRANSLATION_KEYS[unit]) : unit}
         </span>
       </div>
@@ -130,7 +131,7 @@ function FarmerAssignmentRow ({
         type="button"
         onClick={() => onRemove(row.rowKey)}
         disabled={!canRemove}
-        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-red-400 disabled:opacity-30"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-[--color-error] disabled:opacity-30"
         aria-label={t('action.delete')}
       >
         <Trash2 size={16} strokeWidth={1.5} />
@@ -168,17 +169,17 @@ function BufferCard ({
   const hasVariance = roundQty(sumAssigned, 2) !== outgoingQty
 
   return (
-    <div className="mb-3 rounded-xl border border-[#E8E4DF] bg-white p-4">
+    <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-semibold text-[#2D5A1B]">{productName}</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="font-semibold text-[--color-primary]">{productName}</h3>
+        <p className="text-sm text-[--color-text-secondary]">
           {totalOrderedQty} {UNIT_TRANSLATION_KEYS[unit] ? t(UNIT_TRANSLATION_KEYS[unit]) : unit}{' '}
           {t('delivery.total_ordered')}
         </p>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-gray-600">{t('delivery.buffer_pct_label')}</span>
+        <span className="text-[--color-text-secondary]">{t('delivery.buffer_pct_label')}</span>
         <input
           type="number"
           min={0}
@@ -194,22 +195,22 @@ function BufferCard ({
             const n = Math.min(100, Math.max(0, Math.floor(Number(raw))))
             onBufferPctChange(Number.isFinite(n) ? n : 0)
           }}
-          className="w-16 rounded-lg border border-[#E8E4DF] px-2 py-1.5 text-sm"
+          className="w-16 rounded-lg border border-[--color-border] px-2 py-1.5 text-sm"
         />
-        <span className="text-gray-500">%</span>
-        <span className="text-gray-600">
+        <span className="text-[--color-text-secondary]">%</span>
+        <span className="text-[--color-text-secondary]">
           {formatQtyWithUnit(bufferQty, unit, t)}
         </span>
-        <span className="ml-2 text-gray-600">
+        <span className="ml-2 text-[--color-text-secondary]">
           {t('delivery.outgoing_qty_label')}:{' '}
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-[--color-text-primary]">
             {formatQtyWithUnit(outgoingQty, unit, t)}
           </span>
         </span>
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700">
+        <p className="text-sm font-medium text-[--color-text-secondary]">
           {t('delivery.farmer_assignments_label')}
         </p>
         {assignmentRows.map((row) => (
@@ -228,20 +229,20 @@ function BufferCard ({
         <button
           type="button"
           onClick={onAddRow}
-          className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-[#2D5A1B]"
+          className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-[--color-primary]"
         >
           <Plus size={16} strokeWidth={1.5} />
           {t('delivery.add_farmer_assignment')}
         </button>
         {hasVariance && (
-          <p className="text-sm text-amber-600" role="status">
+          <p className="text-sm text-[--color-warning]" role="status">
             {t('delivery.assignment_variance_warning')}: {sumAssigned} / {outgoingQty}
           </p>
         )}
       </div>
 
       {cardErrorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(cardErrorKey)}
         </p>
       )}
@@ -250,7 +251,7 @@ function BufferCard ({
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="mt-4 rounded-xl bg-[#2D5A1B] px-4 py-2.5 text-sm text-white disabled:opacity-60"
+        className="mt-4 rounded-xl bg-[--color-primary] px-4 py-2.5 text-sm text-[--color-text-inverse] disabled:opacity-60"
       >
         {t('action.save')}
       </button>
@@ -285,8 +286,8 @@ function CopyableFarmerOrder ({
   }
 
   return (
-    <div className="rounded-xl border border-[#E8E4DF] bg-white p-4">
-      <h3 className="mb-3 font-semibold text-[#2D5A1B]">
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
+      <h3 className="mb-3 font-semibold text-[--color-primary]">
         {t('delivery.farmer_order_export_title')}
       </h3>
       <div className="mb-4 flex gap-2">
@@ -295,8 +296,8 @@ function CopyableFarmerOrder ({
           onClick={() => onExportLangChange('en')}
           className={`rounded-full px-3 py-1 text-xs font-medium ${
             exportLang === 'en'
-              ? 'bg-[#2D5A1B] text-white'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-[--color-primary] text-[--color-text-inverse]'
+              : 'bg-[--color-surface-raised] text-[--color-text-secondary]'
           }`}
         >
           {t('lang.english')}
@@ -306,8 +307,8 @@ function CopyableFarmerOrder ({
           onClick={() => onExportLangChange('ta')}
           className={`rounded-full px-3 py-1 text-xs font-medium font-tamil ${
             exportLang === 'ta'
-              ? 'bg-[#2D5A1B] text-white'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-[--color-primary] text-[--color-text-inverse]'
+              : 'bg-[--color-surface-raised] text-[--color-text-secondary]'
           }`}
         >
           {t('lang.tamil')}
@@ -328,15 +329,15 @@ function CopyableFarmerOrder ({
           return (
             <div
               key={group.farmerId}
-              className="rounded-lg border border-[#E8E4DF] bg-[#F0EDE8] p-3"
+              className="rounded-lg border border-[--color-border] bg-[--color-background] p-3"
             >
-              <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-[--color-text-primary]">
                 {farmerText}
               </pre>
               <button
                 type="button"
                 onClick={() => handleCopy(group.farmerId, farmerText)}
-                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#2D5A1B]"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[--color-primary]"
               >
                 <Copy size={16} strokeWidth={1.5} />
                 {copiedFarmerId === group.farmerId
@@ -370,13 +371,13 @@ function DeliveredQtyRow ({
     Number.isFinite(parsedDraft) &&
     roundQty(parsedDraft, 2) !== roundQty(savedQty, 2)
 
-  const aggregated = assignment.aggregatedOrderedQty ?? 0
+  // Variance vs outgoing qty (what was ordered from this farmer), not total customer pre-orders.
+  const expected = roundQty(assignment.outgoingQty ?? 0, 2)
+  const qty = roundQty(displayQty, 2)
   let flag = null
-  if (assignment.shortfallFlag) {
-    flag = 'shortfall'
-  } else if (displayQty > aggregated) {
+  if (qty > expected) {
     flag = 'overdelivery'
-  } else if (displayQty < aggregated) {
+  } else if (qty < expected) {
     flag = 'shortfall'
   }
 
@@ -385,58 +386,77 @@ function DeliveredQtyRow ({
     ? t(UNIT_TRANSLATION_KEYS[unit])
     : unit
 
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (dirty && !saving) {
+      onSave(assignment)
+    }
+  }
+
+  const handleBlur = () => {
+    if (dirty && !saving) {
+      onSave(assignment)
+    }
+  }
+
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-gray-900">{assignment.productName}</p>
-          <p className="text-xs text-gray-500">{assignment.farmerName}</p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="font-medium text-[--color-text-primary]">{assignment.productName}</p>
+          <p className="text-xs text-[--color-text-secondary]">{assignment.farmerName}</p>
+          <p className="mt-1 text-sm text-[--color-text-secondary]">
             {t('delivery.expected_qty_label')}:{' '}
             {formatQtyWithUnit(assignment.outgoingQty ?? 0, unit, t)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            {editable ? (
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={draftQty}
-                onChange={(e) => onDraftChange(assignment.assignmentId, e.target.value)}
-                className="w-24 min-h-[44px] rounded-lg border border-[#E8E4DF] px-2 py-2 text-sm text-right"
-              />
-            ) : (
-              <span className="text-sm font-medium text-gray-900">{savedQty}</span>
-            )}
-            <span className="text-xs text-gray-500">{unitLabel}</span>
-            {dirty && (
+          {editable ? (
+            <form onSubmit={handleSubmit} className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={draftQty}
+                  onChange={(e) => onDraftChange(assignment.assignmentId, e.target.value)}
+                  onBlur={handleBlur}
+                  disabled={saving}
+                  className="w-24 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-2 text-sm text-right disabled:opacity-50"
+                />
+                <span className="text-xs text-[--color-text-secondary]">{unitLabel}</span>
+              </div>
               <button
-                type="button"
-                onClick={() => onSave(assignment)}
-                disabled={saving}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-[#2D5A1B] disabled:opacity-50"
-                aria-label={t('action.save')}
+                type="submit"
+                disabled={!dirty || saving}
+                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg bg-[--color-primary] px-4 py-2 text-sm font-medium text-[--color-text-inverse] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Check size={16} strokeWidth={1.5} />
+                {saving && (
+                  <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} aria-hidden />
+                )}
+                {t('action.save')}
               </button>
-            )}
-          </div>
+            </form>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[--color-text-primary]">{savedQty}</span>
+              <span className="text-xs text-[--color-text-secondary]">{unitLabel}</span>
+            </div>
+          )}
           {flag === 'shortfall' && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            <span className="rounded-full bg-[--color-warning-light] px-2 py-0.5 text-xs font-medium text-[--color-warning]">
               {t('delivery.shortfall_flag')}
             </span>
           )}
           {flag === 'overdelivery' && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+            <span className="rounded-full bg-[--color-info-light] px-2 py-0.5 text-xs font-medium text-[--color-info]">
               {t('delivery.overdelivery_flag')}
             </span>
           )}
         </div>
       </div>
       {rowErrorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(rowErrorKey)}
         </p>
       )}
@@ -455,26 +475,26 @@ function PackingCustomerCard ({ customer, t }) {
   const primaryStatus = (customer.orders ?? [])[0]?.status ?? 'confirmed'
   const statusClass =
     primaryStatus === 'packed'
-      ? 'bg-blue-100 text-blue-700'
-      : 'bg-green-100 text-green-700'
+      ? 'bg-[--color-info-light] text-[--color-info]'
+      : 'bg-[--color-success-light] text-[--color-success]'
   const statusKey =
     primaryStatus === 'packed' ? 'order.status.packed' : 'order.status.confirmed'
 
   return (
-    <div className="mb-3 rounded-xl border border-[#E8E4DF] bg-white p-4">
+    <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold text-gray-900">{customer.customerName}</h3>
+        <h3 className="font-semibold text-[--color-text-primary]">{customer.customerName}</h3>
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
           {t(statusKey)}
         </span>
       </div>
       {lineItems.length === 0 ? (
-        <p className="text-sm text-gray-500">{t('delivery.packing_list_empty')}</p>
+        <p className="text-sm text-[--color-text-secondary]">{t('delivery.packing_list_empty')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E8E4DF] text-xs text-gray-500">
+              <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
                 <th className="pb-2 pr-2 font-medium">{t('delivery.packing_col_product')}</th>
                 <th className="pb-2 pr-2 font-medium">{t('delivery.packing_col_ordered')}</th>
                 <th className="pb-2 pr-2 font-medium">{t('delivery.packing_col_allocated')}</th>
@@ -490,18 +510,18 @@ function PackingCustomerCard ({ customer, t }) {
                 return (
                   <tr
                     key={`${li.productId}-${index}`}
-                    className="border-b border-[#E8E4DF]/60 last:border-0"
+                    className="border-b border-[--color-border] last:border-0"
                   >
-                    <td className="py-2 pr-2 text-gray-900">{li.nameEn ?? li.productId}</td>
-                    <td className="py-2 pr-2 text-gray-700">{li.orderedQty}</td>
+                    <td className="py-2 pr-2 text-[--color-text-primary]">{li.nameEn ?? li.productId}</td>
+                    <td className="py-2 pr-2 text-[--color-text-secondary]">{li.orderedQty}</td>
                     <td
                       className={`py-2 pr-2 ${
-                        shortfall ? 'font-medium text-amber-700' : 'text-gray-700'
+                        shortfall ? 'font-medium text-[--color-warning]' : 'text-[--color-text-secondary]'
                       }`}
                     >
                       {li.allocatedQty}
                     </td>
-                    <td className="py-2 text-gray-600">
+                    <td className="py-2 text-[--color-text-secondary]">
                       {UNIT_TRANSLATION_KEYS[li.unit]
                         ? t(UNIT_TRANSLATION_KEYS[li.unit])
                         : li.unit}
@@ -559,7 +579,8 @@ export default function DeliveryManagement () {
 
   const isLockedView = currentState === WEEK_STATES.LOCKED
   const isDeliveryView = currentState === WEEK_STATES.DELIVERY
-  const deliveredEditable = isDeliveryView
+  const isReconciliationView = currentState === WEEK_STATES.RECONCILIATION
+  const deliveredEditable = isDeliveryView || isReconciliationView
 
   const hasDeliveredData = assignments.length > 0
   const hasPackingData = packingCustomers.length > 0
@@ -634,6 +655,8 @@ export default function DeliveryManagement () {
   useEffect(() => {
     loadPage()
   }, [loadPage])
+
+  useEffect(() => subscribeActiveWeekChanged(loadPage), [loadPage])
 
   const farmerNameById = useMemo(
     () => new Map(farmers.map((f) => [f.farmerId, f.name])),
@@ -848,10 +871,6 @@ export default function DeliveryManagement () {
             ? {
                 ...a,
                 deliveredQty: result.deliveredQty ?? deliveredQty,
-                shortfallFlag:
-                  result.fcfsTriggered === true
-                    ? true
-                    : a.shortfallFlag,
               }
             : a,
         ),
@@ -885,30 +904,30 @@ export default function DeliveryManagement () {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#F0EDE8]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full space-y-4 bg-[#F0EDE8] px-4 pb-8 pt-4">
+    <div className="min-h-full space-y-4 bg-[--color-background] px-4 pb-8 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <StateMachineBadge state={currentState} />
         {marketDate && (
-          <p className="text-right text-sm text-gray-600">
+          <p className="text-right text-sm text-[--color-text-secondary]">
             {formatMarketDate(marketDate, lang)}
           </p>
         )}
       </header>
 
       {showReadOnlyNotice && (
-        <p className="text-sm text-amber-600">{t('delivery.read_only_notice')}</p>
+        <p className="text-sm text-[--color-warning]">{t('delivery.read_only_notice')}</p>
       )}
 
       {loadErrorKey && (
         <div
-          className="rounded-xl border border-red-200 bg-white p-4 text-sm text-red-700"
+          className="rounded-xl border border-[--color-error-light] bg-[--color-surface] p-4 text-sm text-[--color-error]"
           role="alert"
         >
           {t(loadErrorKey)}
@@ -916,7 +935,7 @@ export default function DeliveryManagement () {
       )}
 
       {!loadErrorKey && !weekId && (
-        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-600">
+        <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
           {t('error.week_not_found')}
         </div>
       )}
@@ -926,7 +945,7 @@ export default function DeliveryManagement () {
           {isLockedView && (
             <div className="space-y-4">
               {produceItems.length === 0 ? (
-                <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-600">
+                <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
                   {t('empty.produce_list')}
                 </div>
               ) : (
@@ -976,14 +995,14 @@ export default function DeliveryManagement () {
 
           {showSubTabs && (
             <>
-              <div className="flex gap-1 rounded-xl border border-[#E8E4DF] bg-white p-1">
+              <div className="flex gap-1 rounded-xl border border-[--color-border] bg-[--color-surface] p-1">
                 <button
                   type="button"
                   onClick={() => setSubTab('delivered')}
                   className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     subTab === 'delivered'
-                      ? 'bg-[#2D5A1B] text-white'
-                      : 'text-gray-600'
+                      ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                      : 'text-[--color-text-secondary]'
                   }`}
                 >
                   {t('delivery.tab_delivered_quantities')}
@@ -993,8 +1012,8 @@ export default function DeliveryManagement () {
                   onClick={() => setSubTab('packing')}
                   className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     subTab === 'packing'
-                      ? 'bg-[#2D5A1B] text-white'
-                      : 'text-gray-600'
+                      ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                      : 'text-[--color-text-secondary]'
                   }`}
                 >
                   {t('delivery.tab_packing_list')}
@@ -1003,10 +1022,15 @@ export default function DeliveryManagement () {
 
               {subTab === 'delivered' && (
                 <div>
+                  {!deliveredEditable && (
+                    <p className="mb-3 rounded-lg border border-[--color-warning-light] bg-[--color-surface] px-3 py-2 text-sm text-[--color-warning]">
+                      {t('delivery.not_available_in_state')}
+                    </p>
+                  )}
                   {assignments.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E4DF] bg-white py-16">
-                      <Package size={32} strokeWidth={1.5} className="text-gray-300" />
-                      <p className="mt-3 text-sm text-gray-500">
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] py-16">
+                      <Package size={32} strokeWidth={1.5} className="text-[--color-text-disabled]" />
+                      <p className="mt-3 text-sm text-[--color-text-secondary]">
                         {t('empty.delivery_list')}
                       </p>
                     </div>
@@ -1034,9 +1058,9 @@ export default function DeliveryManagement () {
               {subTab === 'packing' && (
                 <div>
                   {packingCustomers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E4DF] bg-white py-16">
-                      <Package size={32} strokeWidth={1.5} className="text-gray-300" />
-                      <p className="mt-3 text-sm text-gray-500">
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] py-16">
+                      <Package size={32} strokeWidth={1.5} className="text-[--color-text-disabled]" />
+                      <p className="mt-3 text-sm text-[--color-text-secondary]">
                         {t('delivery.packing_list_empty')}
                       </p>
                     </div>
@@ -1058,10 +1082,10 @@ export default function DeliveryManagement () {
 
       {toast && (
         <div
-          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[#E8E4DF] bg-white p-4 shadow-lg"
+          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[--color-border] bg-[--color-surface] p-4 shadow-lg"
           role="status"
         >
-          <p className="text-sm font-medium text-gray-800">
+          <p className="text-sm font-medium text-[--color-text-primary]">
             {toast.message
               ?? translateWithFallback(t, toast.key, toast.fallbackKey)}
           </p>

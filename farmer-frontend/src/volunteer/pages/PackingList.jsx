@@ -13,7 +13,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
   const { t } = useLang()
 
   return (
-    <div className="bg-white border border-[#E8E4DF] rounded-lg shadow-sm p-4">
+    <div className="bg-[--color-surface] border border-[--color-border] rounded-lg shadow-sm p-4">
       <p className="font-semibold text-base mb-3">{customer.customerName}</p>
 
       {customer.orders.map((order) => {
@@ -22,7 +22,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
         return (
           <div
             key={order.orderId}
-            className={`rounded-md p-3 mb-2 last:mb-0 ${isPacked ? 'bg-[#F7F5F2]' : ''}`}
+            className={`rounded-md p-3 mb-2 last:mb-0 ${isPacked ? 'bg-[--color-surface-raised]' : ''}`}
           >
             {/* Line items */}
             <div className="flex flex-col gap-1.5 mb-3">
@@ -34,12 +34,12 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
                 return (
                   <div
                     key={item.productId}
-                    className={`flex items-center justify-between text-sm ${isPacked ? 'text-gray-400' : 'text-gray-800'}`}
+                    className={`flex items-center justify-between text-sm ${isPacked ? 'text-[--color-text-disabled]' : 'text-[--color-text-primary]'}`}
                   >
                     {/* Item name + rank badge */}
                     <div className="flex items-center gap-1.5 flex-1 min-w-0 mr-2">
                       {hasRank && (
-                        <span className="bg-amber-100 text-amber-700 text-xs rounded px-1 shrink-0">
+                        <span className="bg-[--color-warning-light] text-[--color-warning] text-xs rounded px-1 shrink-0">
                           {t('packing.fcfs_rank_prefix')}{item.fcfsRank}
                         </span>
                       )}
@@ -51,9 +51,9 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
                       {hasShortfall ? (
                         <>
                           <span className="font-bold">{item.allocatedQty}</span>
-                          <span className="line-through text-xs text-gray-400">{item.orderedQty}</span>
+                          <span className="line-through text-xs text-[--color-text-disabled]">{item.orderedQty}</span>
                           <span>{item.unit}</span>
-                          <span className="bg-red-100 text-red-700 text-xs rounded px-1">
+                          <span className="bg-[--color-error-light] text-[--color-error] text-xs rounded px-1">
                             {t('packing.shortfall_badge')}
                           </span>
                         </>
@@ -71,7 +71,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
               <button
                 onClick={() => onMarkPacked(order.orderId)}
                 disabled={packingId !== null}
-                className="w-full min-h-[48px] bg-[#2D5A1B] text-white rounded-md flex items-center justify-center font-medium text-sm disabled:opacity-60 transition-opacity"
+                className="w-full min-h-[48px] bg-[--color-primary] text-[--color-text-inverse] rounded-md flex items-center justify-center font-medium text-sm disabled:opacity-60 transition-opacity"
               >
                 {packingId === order.orderId ? (
                   <LoadingSpinner size="sm" label="" />
@@ -83,7 +83,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
 
             {/* Packed indicator */}
             {isPacked && (
-              <div className="flex items-center gap-2 text-gray-400 mt-1">
+              <div className="flex items-center gap-2 text-[--color-text-disabled] mt-1">
                 <CheckCircle2 size={18} strokeWidth={1.5} />
                 <span className="text-sm">{t('status.packed')}</span>
               </div>
@@ -103,10 +103,10 @@ function FilterToggle ({ showUnpackedOnly, onChange }) {
   return (
     <button
       onClick={() => onChange(!showUnpackedOnly)}
-      className={`min-h-[44px] rounded-full border border-[#2D5A1B] text-sm px-4 py-2 transition-colors ${
+      className={`min-h-[44px] rounded-full border border-[--color-primary] text-sm px-4 py-2 transition-colors ${
         showUnpackedOnly
-          ? 'bg-[#2D5A1B] text-white'
-          : 'bg-white text-[#2D5A1B]'
+          ? 'bg-[--color-primary] text-[--color-text-inverse]'
+          : 'bg-[--color-surface] text-[--color-primary]'
       }`}
     >
       {showUnpackedOnly ? t('filter.show_all') : t('filter.unpacked_only')}
@@ -182,7 +182,7 @@ export default function PackingList () {
   // ── Loading week state ──────────────────────────────────────────────────────
   if (weekLoading) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
@@ -194,11 +194,11 @@ export default function PackingList () {
   // ── State gate ──────────────────────────────────────────────────────────────
   if (weekState !== WEEK_STATES.DELIVERY) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
-        <p className="text-center text-gray-600 mt-8">
+        <p className="text-center text-[--color-text-secondary] mt-8">
           {t('packing.not_available_in_state')}
         </p>
       </div>
@@ -208,7 +208,7 @@ export default function PackingList () {
   // ── Data loading ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
@@ -220,28 +220,28 @@ export default function PackingList () {
   // ── Load error ──────────────────────────────────────────────────────────────
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
           <StateMachineBadge state={weekState} />
         </div>
-        <p className="text-center text-red-600 mt-8">{loadError}</p>
+        <p className="text-center text-[--color-error] mt-8">{loadError}</p>
       </div>
     )
   }
 
   // ── Normal render ───────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F0EDE8] px-4 py-6">
+    <div className="min-h-full bg-[--color-background] px-4 py-6">
       {/* Header: badge + title + unpacked count */}
       <div className="mb-1">
         <StateMachineBadge state={weekState} />
       </div>
       <div className="flex items-center gap-2 mb-4">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-[--color-text-primary]">
           {t('nav.volunteer.packing_list')}
         </h1>
         {unpackedCount > 0 && (
-          <span className="bg-[#2D5A1B] text-white text-xs font-semibold rounded-full px-2 py-0.5">
+          <span className="bg-[--color-primary] text-[--color-text-inverse] text-xs font-semibold rounded-full px-2 py-0.5">
             {unpackedCount}
           </span>
         )}
@@ -254,20 +254,20 @@ export default function PackingList () {
 
       {/* Pack error banner */}
       {packError && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
+        <div className="mb-4 bg-[--color-error-light] border border-[--color-error-light] text-[--color-error] rounded-md px-4 py-3 text-sm">
           {packError}
         </div>
       )}
 
       {/* All-packed empty state */}
       {showUnpackedOnly && unpackedCount === 0 && customers.length > 0 ? (
-        <div className="flex flex-col items-center justify-center mt-16 gap-3 text-green-600">
+        <div className="flex flex-col items-center justify-center mt-16 gap-3 text-[--color-success]">
           <CheckCircle2 size={48} strokeWidth={1.5} />
-          <p className="text-gray-600 text-center">{t('packing.all_packed')}</p>
+          <p className="text-[--color-text-secondary] text-center">{t('packing.all_packed')}</p>
         </div>
       ) : filteredCustomers.length === 0 ? (
         /* No orders at all */
-        <p className="text-center text-gray-500 mt-8">{t('empty.packing_list')}</p>
+        <p className="text-center text-[--color-text-secondary] mt-8">{t('empty.packing_list')}</p>
       ) : (
         /* Customer order cards */
         <div className="flex flex-col gap-3">

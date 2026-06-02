@@ -42,17 +42,17 @@ const STATUS_FILTERS = [
 
 const STATUS_BADGE = {
   [ORDER_STATUS.CONFIRMED]: {
-    className: 'bg-green-100 text-green-700',
+    className: 'bg-[--color-success-light] text-[--color-success]',
     labelKey: 'status.confirmed',
     fallbackKey: 'order.status.confirmed',
   },
   [ORDER_STATUS.PENDING_PAYMENT]: {
-    className: 'bg-amber-100 text-amber-700',
+    className: 'bg-[--color-warning-light] text-[--color-warning]',
     labelKey: 'status.pending_payment',
     fallbackKey: 'order.status.pending_payment',
   },
   [ORDER_STATUS.CANCELLED]: {
-    className: 'bg-gray-100 text-gray-500',
+    className: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
     labelKey: 'status.cancelled',
     fallbackKey: 'order.status.cancelled',
   },
@@ -147,7 +147,7 @@ function StatusBadge ({ status, t }) {
   const config = STATUS_BADGE[status]
   if (!config) {
     return (
-      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+      <span className="rounded-full bg-[--color-surface-raised] px-2 py-0.5 text-xs font-medium text-[--color-text-secondary]">
         {status}
       </span>
     )
@@ -174,15 +174,15 @@ function CancelModal ({
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-        <p className="mt-2 text-sm text-gray-600">{body}</p>
+      <div className="mx-4 w-full max-w-sm rounded-2xl bg-[--color-surface] p-6">
+        <h2 className="text-lg font-semibold text-[--color-text-primary]">{title}</h2>
+        <p className="mt-2 text-sm text-[--color-text-secondary]">{body}</p>
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-xl border border-gray-200 px-4 py-2 text-gray-600 disabled:opacity-60"
+            className="rounded-xl border border-[--color-border] px-4 py-2 text-[--color-text-secondary] disabled:opacity-60"
           >
             {cancelLabel}
           </button>
@@ -190,7 +190,7 @@ function CancelModal ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="rounded-xl bg-red-600 px-4 py-2 text-white disabled:opacity-60"
+            className="rounded-xl bg-[--color-error] px-4 py-2 text-[--color-text-inverse] disabled:opacity-60"
           >
             {confirmLabel}
           </button>
@@ -309,15 +309,15 @@ function EditOrderModal ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[--color-surface] p-6">
+        <h2 className="text-lg font-semibold text-[--color-text-primary]">
           {translateWithFallback(t, 'order.edit.title', 'action.edit')}
           {' — '}
           {getCustomerName(order)}
         </h2>
 
         {errorKey && (
-          <p className="mt-3 text-sm text-red-600" role="alert">
+          <p className="mt-3 text-sm text-[--color-error]" role="alert">
             {t(errorKey)}
           </p>
         )}
@@ -337,14 +337,14 @@ function EditOrderModal ({
               return (
                 <div
                   key={row.localId}
-                  className="flex flex-wrap items-end gap-2 rounded-lg border border-[#E8E4DF] p-3"
+                  className="flex flex-wrap items-end gap-2 rounded-lg border border-[--color-border] p-3"
                 >
                   <div className="min-w-[120px] flex-1">
-                    <p className="text-xs text-gray-500">{t('field.product')}</p>
-                    <p className="text-sm font-medium text-gray-800">{name}</p>
+                    <p className="text-xs text-[--color-text-secondary]">{t('field.product')}</p>
+                    <p className="text-sm font-medium text-[--color-text-primary]">{name}</p>
                   </div>
                   <div className="w-20">
-                    <label className="text-xs text-gray-500">{t('field.quantity')}</label>
+                    <label className="text-xs text-[--color-text-secondary]">{t('field.quantity')}</label>
                     <input
                       type="number"
                       min={0}
@@ -352,12 +352,12 @@ function EditOrderModal ({
                       value={row.orderedQty}
                       onChange={(e) =>
                         updateRow(index, { orderedQty: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-[#E8E4DF] px-2 py-1.5 text-sm"
+                      className="mt-1 w-full rounded-lg border border-[--color-border] px-2 py-1.5 text-sm"
                     />
                   </div>
                   <div className="w-20">
-                    <p className="text-xs text-gray-500">{t('field.unit')}</p>
-                    <p className="mt-1 text-sm text-gray-700">
+                    <p className="text-xs text-[--color-text-secondary]">{t('field.unit')}</p>
+                    <p className="mt-1 text-sm text-[--color-text-secondary]">
                       {row.unit ? t(`unit.${row.unit}`) : '—'}
                     </p>
                   </div>
@@ -365,7 +365,7 @@ function EditOrderModal ({
                     type="button"
                     onClick={() => removeRow(index)}
                     disabled={rows.length <= 1}
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-red-400 disabled:opacity-30"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-[--color-error] disabled:opacity-30"
                     aria-label={t('action.delete')}
                   >
                     <Trash2 size={16} strokeWidth={1.5} />
@@ -380,18 +380,18 @@ function EditOrderModal ({
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
-            className="mt-3 text-sm font-medium text-[#2D5A1B]"
+            className="mt-3 text-sm font-medium text-[--color-primary]"
           >
             {translateWithFallback(t, 'action.add_line_item', 'intake.add_line_item')}
           </button>
         ) : (
-          <div className="mt-3 space-y-2 rounded-lg border border-dashed border-[#E8E4DF] p-3">
+          <div className="mt-3 space-y-2 rounded-lg border border-dashed border-[--color-border] p-3">
             <input
               type="search"
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
               placeholder={t('action.search')}
-              className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
             />
             <select
               value={addProductId}
@@ -401,7 +401,7 @@ function EditOrderModal ({
                 setAddProductId(id)
                 setAddUnit(produce?.unit ?? '')
               }}
-              className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
             >
               <option value="">— {t('field.product')} —</option>
               {filteredProduce.map((item) => (
@@ -418,12 +418,12 @@ function EditOrderModal ({
                 value={addQty}
                 onChange={(e) => setAddQty(e.target.value)}
                 placeholder={t('field.quantity')}
-                className="flex-1 rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+                className="flex-1 rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               />
               <select
                 value={addUnit}
                 onChange={(e) => setAddUnit(e.target.value)}
-                className="w-28 rounded-lg border border-[#E8E4DF] px-2 py-2 text-sm"
+                className="w-28 rounded-lg border border-[--color-border] px-2 py-2 text-sm"
               >
                 <option value="">—</option>
                 {addProductId && produceById.get(addProductId)?.unit && (
@@ -437,14 +437,14 @@ function EditOrderModal ({
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="flex-1 rounded-lg border border-[#E8E4DF] py-2 text-sm text-gray-600"
+                className="flex-1 rounded-lg border border-[--color-border] py-2 text-sm text-[--color-text-secondary]"
               >
                 {t('action.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleAddLine}
-                className="flex-1 rounded-lg bg-[#2D5A1B] py-2 text-sm text-white"
+                className="flex-1 rounded-lg bg-[--color-primary] py-2 text-sm text-[--color-text-inverse]"
               >
                 {t('action.add')}
               </button>
@@ -457,7 +457,7 @@ function EditOrderModal ({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 rounded-xl border border-[#E8E4DF] py-2.5 text-gray-600 disabled:opacity-60"
+            className="flex-1 rounded-xl border border-[--color-border] py-2.5 text-[--color-text-secondary] disabled:opacity-60"
           >
             {t('action.cancel')}
           </button>
@@ -465,7 +465,7 @@ function EditOrderModal ({
             type="button"
             onClick={handleSave}
             disabled={saving || produceLoading}
-            className="flex-1 rounded-xl bg-[#2D5A1B] py-2.5 text-white disabled:opacity-60"
+            className="flex-1 rounded-xl bg-[--color-primary] py-2.5 text-[--color-text-inverse] disabled:opacity-60"
           >
             {saving ? t('action.loading') : t('action.save')}
           </button>
@@ -494,13 +494,13 @@ function OrderDetail ({
     && order.status === ORDER_STATUS.PENDING_PAYMENT
 
   return (
-    <div className="mt-3 border-t border-[#E8E4DF] pt-3">
+    <div className="mt-3 border-t border-[--color-border] pt-3">
       <div className="space-y-1 text-sm">
-        <p className="font-medium text-gray-800">{getCustomerName(order)}</p>
+        <p className="font-medium text-[--color-text-primary]">{getCustomerName(order)}</p>
         {getCustomerPhone(order) && (
-          <p className="text-gray-500">{getCustomerPhone(order)}</p>
+          <p className="text-[--color-text-secondary]">{getCustomerPhone(order)}</p>
         )}
-        <p className="text-gray-500">
+        <p className="text-[--color-text-secondary]">
           {formatFullDateTime(order.fcfsTimestamp, lang)}
         </p>
         <StatusBadge status={order.status} t={t} />
@@ -509,7 +509,7 @@ function OrderDetail ({
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E8E4DF] text-xs text-gray-500">
+            <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
               <th className="pb-2 pr-2 font-medium">{t('field.product')}</th>
               <th className="pb-2 pr-2 font-medium">{t('field.quantity')}</th>
               <th className="pb-2 pr-2 font-medium">{t('field.unit')}</th>
@@ -522,16 +522,16 @@ function OrderDetail ({
             {(order.lineItems ?? []).map((li) => {
               const lineValue = getLineValue(li)
               return (
-                <tr key={li.lineItemId ?? `${li.productId}-${li.orderedQty}`} className="border-b border-[#E8E4DF]/60">
-                  <td className="py-2 pr-2 text-gray-800">
+                <tr key={li.lineItemId ?? `${li.productId}-${li.orderedQty}`} className="border-b border-[--color-border]">
+                  <td className="py-2 pr-2 text-[--color-text-primary]">
                     {productDisplayName(li.productId, produceById, lang)}
                   </td>
-                  <td className="py-2 pr-2 text-gray-700">{li.orderedQty}</td>
-                  <td className="py-2 pr-2 text-gray-700">
+                  <td className="py-2 pr-2 text-[--color-text-secondary]">{li.orderedQty}</td>
+                  <td className="py-2 pr-2 text-[--color-text-secondary]">
                     {li.unit ? t(`unit.${li.unit}`) : '—'}
                   </td>
                   {showValueColumn && (
-                    <td className="py-2 text-gray-700">
+                    <td className="py-2 text-[--color-text-secondary]">
                       {lineValue != null ? formatINR(lineValue) : '—'}
                     </td>
                   )}
@@ -544,13 +544,13 @@ function OrderDetail ({
 
       <div className="mt-3 space-y-1 text-sm">
         <p>
-          <span className="text-gray-500">{t('summary.total_label')}: </span>
-          <span className="font-semibold text-[#2D5A1B]">
+          <span className="text-[--color-text-secondary]">{t('summary.total_label')}: </span>
+          <span className="font-semibold text-[--color-primary]">
             {formatINROptional(getOrderValue(order))}
           </span>
         </p>
         {walletBalance != null && (
-          <p className="text-gray-600">{formatINR(walletBalance)}</p>
+          <p className="text-[--color-text-secondary]">{formatINR(walletBalance)}</p>
         )}
       </div>
 
@@ -560,7 +560,7 @@ function OrderDetail ({
             <button
               type="button"
               onClick={() => onEdit(order)}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[#E8E4DF] bg-white px-3 py-2 text-sm font-medium text-gray-700"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm font-medium text-[--color-text-secondary]"
             >
               <Pencil size={16} strokeWidth={1.5} />
               {translateWithFallback(t, 'action.edit_order', 'action.edit')}
@@ -568,7 +568,7 @@ function OrderDetail ({
             <button
               type="button"
               onClick={() => onCancel(order)}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[#E8E4DF] bg-white px-3 py-2 text-sm font-medium text-red-500"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm font-medium text-[--color-error]"
             >
               <X size={16} strokeWidth={1.5} />
               {translateWithFallback(t, 'action.cancel_order', 'action.cancel')}
@@ -580,9 +580,9 @@ function OrderDetail ({
             type="button"
             disabled
             title={t('order.confirm_via_topup_tooltip')}
-            className="inline-flex min-h-[44px] cursor-not-allowed items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 opacity-50"
+            className="inline-flex min-h-[44px] cursor-not-allowed items-center gap-1.5 rounded-lg border border-[--color-success-light] bg-[--color-success-light] px-3 py-2 text-sm font-medium text-[--color-success] opacity-50"
           >
-            <CheckCircle size={16} strokeWidth={1.5} className="text-green-600" />
+            <CheckCircle size={16} strokeWidth={1.5} className="text-[--color-success]" />
             {t('action.confirm_order')}
           </button>
         )}
@@ -603,20 +603,20 @@ function OrderCard ({
   onCancel,
 }) {
   return (
-    <div className="rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <button
         type="button"
         onClick={() => onToggle(order.orderId)}
         className="flex w-full items-start justify-between gap-3 text-left"
       >
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-800">{getCustomerName(order)}</p>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="text-sm font-medium text-[--color-text-primary]">{getCustomerName(order)}</p>
+          <p className="mt-0.5 text-xs text-[--color-text-secondary]">
             {formatRelativeTime(order.fcfsTimestamp, lang)}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <p className="font-semibold text-[#2D5A1B]">
+          <p className="font-semibold text-[--color-primary]">
             {formatINROptional(getOrderValue(order))}
           </p>
           <StatusBadge status={order.status} t={t} />
@@ -649,20 +649,20 @@ function PendingPaymentRow ({ order, currentState, t }) {
     && order.status === ORDER_STATUS.PENDING_PAYMENT
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-800">{getCustomerName(order)}</p>
-          <p className="mt-1 font-semibold text-[#2D5A1B]">
+          <p className="text-sm font-medium text-[--color-text-primary]">{getCustomerName(order)}</p>
+          <p className="mt-1 font-semibold text-[--color-primary]">
             {formatINROptional(orderValue)}
           </p>
         </div>
         <div className="text-right text-sm">
           {walletBalance != null && (
-            <p className="text-gray-500">{formatINR(walletBalance)}</p>
+            <p className="text-[--color-text-secondary]">{formatINR(walletBalance)}</p>
           )}
           {shortfall != null && shortfall > 0 && (
-            <p className="mt-1 text-amber-600">
+            <p className="mt-1 text-[--color-warning]">
               {translateWithFallback(t, 'order.shortfall_label', 'intake.shortfall_amount')}
               {': '}
               {formatINR(shortfall)}
@@ -675,9 +675,9 @@ function PendingPaymentRow ({ order, currentState, t }) {
           type="button"
           disabled
           title={t('order.confirm_via_topup_tooltip')}
-          className="mt-3 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg bg-green-50 py-2 text-sm font-medium text-green-700 opacity-50"
+          className="mt-3 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg bg-[--color-success-light] py-2 text-sm font-medium text-[--color-success] opacity-50"
         >
-          <CheckCircle size={16} strokeWidth={1.5} className="text-green-600" />
+          <CheckCircle size={16} strokeWidth={1.5} className="text-[--color-success]" />
           {t('action.confirm_order')}
         </button>
       )}
@@ -714,13 +714,13 @@ function AggregatedSummary ({ orders, produceById, lang, t }) {
 
   return (
     <section className="mt-6">
-      <h2 className="mb-3 text-sm font-semibold text-gray-800">
+      <h2 className="mb-3 text-sm font-semibold text-[--color-text-primary]">
         {translateWithFallback(t, 'order.summary.title', 'nav.order_management')}
       </h2>
-      <div className="overflow-x-auto rounded-xl border border-[#E8E4DF] bg-white p-4">
+      <div className="overflow-x-auto rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E8E4DF] text-xs text-gray-500">
+            <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
               <th className="pb-2 pr-4 font-medium">{t('field.product')}</th>
               <th className="pb-2 pr-4 font-medium">{t('field.quantity')}</th>
               <th className="pb-2 font-medium">{t('field.unit')}</th>
@@ -728,12 +728,12 @@ function AggregatedSummary ({ orders, produceById, lang, t }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.productId} className="border-b border-[#E8E4DF]/60 last:border-0">
-                <td className="py-2 pr-4 text-gray-800">
+              <tr key={row.productId} className="border-b border-[--color-border] last:border-0">
+                <td className="py-2 pr-4 text-[--color-text-primary]">
                   {productDisplayName(row.productId, produceById, lang)}
                 </td>
-                <td className="py-2 pr-4 text-gray-700">{row.totalQty}</td>
-                <td className="py-2 text-gray-700">
+                <td className="py-2 pr-4 text-[--color-text-secondary]">{row.totalQty}</td>
+                <td className="py-2 text-[--color-text-secondary]">
                   {row.unit ? t(`unit.${row.unit}`) : '—'}
                 </td>
               </tr>
@@ -928,32 +928,32 @@ export default function OrderManagement () {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#F0EDE8]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full space-y-4 bg-[#F0EDE8] pb-8">
+    <div className="min-h-full space-y-4 bg-[--color-background] pb-8">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <StateMachineBadge state={currentState} />
         {marketDate && (
-          <p className="text-right text-sm text-gray-600">
+          <p className="text-right text-sm text-[--color-text-secondary]">
             {formatMarketDate(marketDate, lang)}
           </p>
         )}
       </header>
 
       {currentState !== WEEK_STATES.OPEN && (
-        <p className="text-sm text-amber-600">
+        <p className="text-sm text-[--color-warning]">
           {translateWithFallback(t, 'order.read_only_notice', 'error.action_not_permitted_in_state')}
         </p>
       )}
 
       {loadErrorKey && (
         <div
-          className="rounded-xl border border-red-200 bg-white p-4 text-sm text-red-700"
+          className="rounded-xl border border-[--color-error-light] bg-[--color-surface] p-4 text-sm text-[--color-error]"
           role="alert"
         >
           {t(loadErrorKey)}
@@ -961,21 +961,21 @@ export default function OrderManagement () {
       )}
 
       {!loadErrorKey && !weekId && (
-        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-600">
+        <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
           {t('error.week_not_found')}
         </div>
       )}
 
       {weekId && !loadErrorKey && (
         <>
-          <div className="flex gap-1 rounded-xl border border-[#E8E4DF] bg-white p-1">
+          <div className="flex gap-1 rounded-xl border border-[--color-border] bg-[--color-surface] p-1">
             <button
               type="button"
               onClick={() => setMainTab('orders')}
               className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 mainTab === 'orders'
-                  ? 'bg-[#2D5A1B] text-white'
-                  : 'text-gray-600'
+                  ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                  : 'text-[--color-text-secondary]'
               }`}
             >
               {t('nav.order_management')}
@@ -985,13 +985,13 @@ export default function OrderManagement () {
               onClick={() => setMainTab('pending_payment')}
               className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 mainTab === 'pending_payment'
-                  ? 'bg-[#2D5A1B] text-white'
-                  : 'text-gray-600'
+                  ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                  : 'text-[--color-text-secondary]'
               }`}
             >
               {t('order.status.pending_payment')}
               {filterCounts.pending_payment > 0 && (
-                <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
+                <span className="ml-1.5 rounded-full bg-[--color-warning-light] px-1.5 py-0.5 text-xs text-[--color-warning]">
                   {filterCounts.pending_payment}
                 </span>
               )}
@@ -1009,7 +1009,7 @@ export default function OrderManagement () {
                   'order.search.placeholder',
                   'action.search',
                 )}
-                className="w-full rounded-xl border border-[#E8E4DF] bg-white px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400"
+                className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-2.5 text-sm text-[--color-text-primary] placeholder:text-[--color-text-disabled]"
               />
 
               <div className="flex flex-wrap gap-2">
@@ -1023,14 +1023,14 @@ export default function OrderManagement () {
                       onClick={() => setStatusFilter(filter.id)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                         active
-                          ? 'bg-[#2D5A1B] text-white'
-                          : 'border border-[#E8E4DF] bg-white text-gray-600'
+                          ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                          : 'border border-[--color-border] bg-[--color-surface] text-[--color-text-secondary]'
                       }`}
                     >
                       {translateWithFallback(t, filter.labelKey, filter.fallbackKey)}
                       <span
                         className={`rounded-full px-1.5 text-xs ${
-                          active ? 'bg-white/20' : 'bg-gray-100 text-gray-600'
+                          active ? 'bg-[--color-surface]/20' : 'bg-[--color-surface-raised] text-[--color-text-secondary]'
                         }`}
                       >
                         {count}
@@ -1041,9 +1041,9 @@ export default function OrderManagement () {
               </div>
 
               {filteredOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E4DF] bg-white py-16">
-                  <PackageOpen size={32} strokeWidth={1.5} className="text-gray-300" />
-                  <p className="mt-3 text-sm text-gray-500">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] py-16">
+                  <PackageOpen size={32} strokeWidth={1.5} className="text-[--color-text-disabled]" />
+                  <p className="mt-3 text-sm text-[--color-text-secondary]">
                     {translateWithFallback(t, 'order.empty_state', 'empty.order_list')}
                   </p>
                 </div>
@@ -1071,9 +1071,9 @@ export default function OrderManagement () {
           {mainTab === 'pending_payment' && (
             <div>
               {pendingPaymentOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E4DF] bg-white py-16">
-                  <CheckCircle size={32} strokeWidth={1.5} className="text-green-400" />
-                  <p className="mt-3 text-sm text-gray-500">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] py-16">
+                  <CheckCircle size={32} strokeWidth={1.5} className="text-[--color-success]" />
+                  <p className="mt-3 text-sm text-[--color-text-secondary]">
                     {translateWithFallback(
                       t,
                       'order.pending_payment_empty',
@@ -1144,10 +1144,10 @@ export default function OrderManagement () {
 
       {toast && (
         <div
-          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[#E8E4DF] bg-white p-4 shadow-lg"
+          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[--color-border] bg-[--color-surface] p-4 shadow-lg"
           role="status"
         >
-          <p className="text-sm font-medium text-gray-800">
+          <p className="text-sm font-medium text-[--color-text-primary]">
             {toast.message
               ?? translateWithFallback(t, toast.key, toast.fallbackKey)}
           </p>

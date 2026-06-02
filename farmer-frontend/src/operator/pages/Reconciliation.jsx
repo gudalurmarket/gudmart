@@ -78,8 +78,8 @@ function computeLocalTotalDue(farmerGroup, soldQtyDrafts) {
 
 function StatPill({ count, total, labelKey, amber, t }) {
   const colorClass = amber
-    ? 'bg-amber-100 text-amber-700'
-    : 'bg-green-100 text-green-700'
+    ? 'bg-[--color-warning-light] text-[--color-warning]'
+    : 'bg-[--color-success-light] text-[--color-success]'
   const display = total != null ? `${count}/${total}` : String(count)
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${colorClass}`}>
@@ -100,40 +100,40 @@ function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfir
   const absMonetary = Math.abs(diff.monetaryDifference ?? 0)
 
   return (
-    <div className="mb-3 rounded-xl border border-[#E8E4DF] bg-white p-4">
+    <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       {/* Row 1 — customer + product + type badge */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-medium text-gray-900">{diff.customerName}</p>
-          <p className="text-xs text-gray-500">{diff.productName ?? diff.productId}</p>
+          <p className="font-medium text-[--color-text-primary]">{diff.customerName}</p>
+          <p className="text-xs text-[--color-text-secondary]">{diff.productName ?? diff.productId}</p>
         </div>
         {isShortfall && (
-          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+          <span className="rounded-full bg-[--color-warning-light] px-2.5 py-0.5 text-xs font-medium text-[--color-warning]">
             {t('reconciliation.shortfall_label')}
           </span>
         )}
         {isOverdelivery && (
-          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <span className="rounded-full bg-[--color-info-light] px-2.5 py-0.5 text-xs font-medium text-[--color-info]">
             {t('reconciliation.overdelivery_label')}
           </span>
         )}
       </div>
 
       {/* Row 2 — qty detail */}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-        <span>Ordered: {diff.orderedQty ?? 0} {unit}</span>
-        <span>Delivered: {diff.deliveredQty ?? 0} {unit}</span>
-        <span className={isShortfall ? 'text-amber-600' : isOverdelivery ? 'text-blue-600' : 'text-gray-600'}>
-          Diff: {sign}{diffQty} {unit}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[--color-text-secondary]">
+        <span>{t('reconciliation.ordered_label')}: {diff.orderedQty ?? 0} {unit}</span>
+        <span>{t('reconciliation.delivered_label')}: {diff.deliveredQty ?? 0} {unit}</span>
+        <span className={isShortfall ? 'text-[--color-warning]' : isOverdelivery ? 'text-[--color-info]' : 'text-[--color-text-secondary]'}>
+          {t('reconciliation.diff_label')}: {sign}{diffQty} {unit}
         </span>
       </div>
 
       {/* Row 3 — monetary */}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <span className="text-gray-500">
-          {formatINROptional(diff.pricePerUnit ?? 0)}/unit
+        <span className="text-[--color-text-secondary]">
+          {formatINROptional(diff.pricePerUnit ?? 0)}{t('reconciliation.per_unit_suffix')}
         </span>
-        <span className={`font-medium ${isShortfall ? 'text-amber-600' : 'text-red-600'}`}>
+        <span className={`font-medium ${isShortfall ? 'text-[--color-warning]' : 'text-[--color-error]'}`}>
           {isShortfall ? t('reconciliation.credit_label') : t('reconciliation.debit_label')}
           {': '}
           {formatINROptional(absMonetary)}
@@ -142,7 +142,7 @@ function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfir
 
       {/* Confirmed / confirm button */}
       {diff.differenceConfirmed ? (
-        <div className="mt-3 flex items-center gap-1.5 text-sm text-green-600">
+        <div className="mt-3 flex items-center gap-1.5 text-sm text-[--color-success]">
           <CheckCircle size={16} strokeWidth={1.5} />
           <span>{t('reconciliation.difference_confirmed')}</span>
         </div>
@@ -152,7 +152,7 @@ function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfir
             type="button"
             onClick={() => onConfirm(diff.diffId ?? diff._id)}
             disabled={confirming}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm text-white disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-[--color-primary] px-4 py-2 text-sm text-[--color-text-inverse] disabled:opacity-60"
           >
             {confirming && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
             {t('reconciliation.confirm_difference_button')}
@@ -161,7 +161,7 @@ function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfir
       ) : null}
 
       {errorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(errorKey)}
         </p>
       )}
@@ -187,10 +187,10 @@ function FarmerPaymentCard({
   const showAmounts = payment.status === 'partial' || payment.status === 'paid'
 
   const statusBadgeClass = {
-    unpaid: 'bg-red-50 text-red-600',
-    partial: 'bg-amber-100 text-amber-700',
-    paid: 'bg-green-100 text-green-700',
-  }[payment.status] ?? 'bg-gray-100 text-gray-600'
+    unpaid: 'bg-[--color-error-light] text-[--color-error]',
+    partial: 'bg-[--color-warning-light] text-[--color-warning]',
+    paid: 'bg-[--color-success-light] text-[--color-success]',
+  }[payment.status] ?? 'bg-[--color-surface-raised] text-[--color-text-secondary]'
 
   const toggleLabelKey =
     payment.status === 'paid'
@@ -204,10 +204,10 @@ function FarmerPaymentCard({
   }
 
   return (
-    <div className="mb-3 rounded-xl border border-[#E8E4DF] bg-white p-4">
+    <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold text-gray-900">{payment.farmerName}</p>
+        <p className="font-semibold text-[--color-text-primary]">{payment.farmerName}</p>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass}`}>
           {t(`payment.status.${payment.status}`)}
         </span>
@@ -216,18 +216,18 @@ function FarmerPaymentCard({
       {/* Amounts */}
       <div className="mt-2 space-y-1 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-gray-600">{t('reconciliation.amount_due_label')}</span>
-          <span className="font-medium text-gray-900">{formatINROptional(payment.amountDue ?? 0)}</span>
+          <span className="text-[--color-text-secondary]">{t('reconciliation.amount_due_label')}</span>
+          <span className="font-medium text-[--color-text-primary]">{formatINROptional(payment.amountDue ?? 0)}</span>
         </div>
         {showAmounts && (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">{t('reconciliation.amount_paid_label')}</span>
-              <span className="font-medium text-gray-900">{formatINROptional(payment.amountPaid ?? 0)}</span>
+              <span className="text-[--color-text-secondary]">{t('reconciliation.amount_paid_label')}</span>
+              <span className="font-medium text-[--color-text-primary]">{formatINROptional(payment.amountPaid ?? 0)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">{t('reconciliation.outstanding_label')}</span>
-              <span className={`font-medium ${outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-[--color-text-secondary]">{t('reconciliation.outstanding_label')}</span>
+              <span className={`font-medium ${outstanding > 0 ? 'text-[--color-error]' : 'text-[--color-success]'}`}>
                 {formatINROptional(outstanding)}
               </span>
             </div>
@@ -240,7 +240,7 @@ function FarmerPaymentCard({
         <button
           type="button"
           onClick={onToggle}
-          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#2D5A1B]"
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[--color-primary]"
         >
           {isOpen
             ? <ChevronUp size={16} strokeWidth={1.5} />
@@ -251,7 +251,7 @@ function FarmerPaymentCard({
 
       {/* Payment form */}
       {isOpen && (
-        <div className="mt-3 space-y-3 border-t border-[#E8E4DF] pt-3">
+        <div className="mt-3 space-y-3 border-t border-[--color-border] pt-3">
           {/* Status pills */}
           <div className="flex gap-2">
             {PAYMENT_STATUSES.map((st) => (
@@ -261,8 +261,8 @@ function FarmerPaymentCard({
                 onClick={() => onFormChange('status', st)}
                 className={`flex-1 rounded-full px-2 py-1.5 text-sm font-medium transition-colors ${
                   form.status === st
-                    ? 'bg-[#2D5A1B] text-white'
-                    : 'border border-[#E8E4DF] text-gray-600'
+                    ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                    : 'border border-[--color-border] text-[--color-text-secondary]'
                 }`}
               >
                 {t(`payment.status.${st}`)}
@@ -280,9 +280,8 @@ function FarmerPaymentCard({
                 inputMode="decimal"
                 value={form.amountInput}
                 onChange={(e) => onFormChange('amountInput', e.target.value)}
-                readOnly={form.status === 'paid'}
                 placeholder="0"
-                className={`w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm${form.status === 'paid' ? ' bg-gray-50 text-gray-500' : ''}`}
+                className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               />
               <div className="flex gap-2">
                 {[PAYMENT_CHANNELS.CASH, PAYMENT_CHANNELS.UPI].map((ch) => (
@@ -292,8 +291,8 @@ function FarmerPaymentCard({
                     onClick={() => onFormChange('channel', ch)}
                     className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       form.channel === ch
-                        ? 'bg-[#2D5A1B] text-white'
-                        : 'border border-[#E8E4DF] text-gray-600'
+                        ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                        : 'border border-[--color-border] text-[--color-text-secondary]'
                     }`}
                   >
                     {t(ch === PAYMENT_CHANNELS.CASH ? 'payment.channel.cash' : 'payment.channel.upi')}
@@ -307,7 +306,7 @@ function FarmerPaymentCard({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm text-white disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-[--color-primary] px-4 py-2 text-sm text-[--color-text-inverse] disabled:opacity-60"
           >
             {saving && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
             {t('action.save')}
@@ -316,7 +315,7 @@ function FarmerPaymentCard({
       )}
 
       {errorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(errorKey)}
         </p>
       )}
@@ -341,16 +340,16 @@ function LocalFarmerPaymentCard({
   t,
 }) {
   const canEditSoldQty = isReconciliation && !isPaid
-  const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'
+  const statusClass = isPaid ? 'bg-[--color-success-light] text-[--color-success]' : 'bg-[--color-error-light] text-[--color-error]'
   const form = formState ?? { amountInput: String(paiseToRupees(Math.max(0, totalDuePaise))), channel: PAYMENT_CHANNELS.CASH }
 
   return (
-    <div className="mb-3 rounded-xl border border-[#E8E4DF] bg-white p-4">
+    <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       {/* Header */}
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-semibold text-gray-900">{farmerGroup.farmerName}</p>
-          <p className="mt-0.5 text-sm text-gray-600">
+          <p className="font-semibold text-[--color-text-primary]">{farmerGroup.farmerName}</p>
+          <p className="mt-0.5 text-sm text-[--color-text-secondary]">
             {t('reconciliation.amount_due_label')}: {formatINROptional(totalDuePaise)}
           </p>
         </div>
@@ -363,7 +362,7 @@ function LocalFarmerPaymentCard({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E8E4DF] text-xs text-gray-500">
+            <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
               <th className="pb-2 pr-3 font-medium">{t('market_day.item_label')}</th>
               <th className="pb-2 pr-3 font-medium">{t('market_day.inbound_qty_label')}</th>
               <th className="pb-2 pr-3 font-medium">{t('reconciliation.sold_qty_label')}</th>
@@ -381,9 +380,9 @@ function LocalFarmerPaymentCard({
               const lineValue = Math.floor(soldQty * (item.pricePerUnit ?? 0))
 
               return (
-                <tr key={draftKey} className="border-b border-[#E8E4DF]/60 last:border-0">
-                  <td className="py-2 pr-3 text-gray-900">{item.itemName}</td>
-                  <td className="py-2 pr-3 text-gray-700">{item.inboundQty ?? 0}</td>
+                <tr key={draftKey} className="border-b border-[--color-border] last:border-0">
+                  <td className="py-2 pr-3 text-[--color-text-primary]">{item.itemName}</td>
+                  <td className="py-2 pr-3 text-[--color-text-secondary]">{item.inboundQty ?? 0}</td>
                   <td className="py-2 pr-3">
                     {canEditSoldQty ? (
                       <input
@@ -393,15 +392,15 @@ function LocalFarmerPaymentCard({
                         step={1}
                         value={soldQtyStr}
                         onChange={(e) => onSoldQtyChange(draftKey, e.target.value)}
-                        className="w-20 min-h-[44px] rounded-lg border border-[#E8E4DF] px-2 py-1 text-sm"
+                        className="w-20 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-1 text-sm"
                       />
                     ) : (
-                      <span className="text-gray-700">{soldQty}</span>
+                      <span className="text-[--color-text-secondary]">{soldQty}</span>
                     )}
                   </td>
-                  <td className="py-2 pr-3 text-gray-500">{unsoldQty}</td>
-                  <td className="py-2 pr-3 text-gray-600">{unitStr(item.unit, t)}</td>
-                  <td className="py-2 text-right text-gray-700">{formatINROptional(lineValue)}</td>
+                  <td className="py-2 pr-3 text-[--color-text-secondary]">{unsoldQty}</td>
+                  <td className="py-2 pr-3 text-[--color-text-secondary]">{unitStr(item.unit, t)}</td>
+                  <td className="py-2 text-right text-[--color-text-secondary]">{formatINROptional(lineValue)}</td>
                 </tr>
               )
             })}
@@ -411,9 +410,9 @@ function LocalFarmerPaymentCard({
 
       {/* Payment form — state-gated, not yet paid */}
       {isReconciliation && !isPaid && (
-        <div className="mt-4 space-y-3 border-t border-[#E8E4DF] pt-3">
+        <div className="mt-4 space-y-3 border-t border-[--color-border] pt-3">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">
+            <label className="mb-1 block text-xs text-[--color-text-secondary]">
               {t('reconciliation.amount_due_label')} (₹)
             </label>
             <input
@@ -423,7 +422,7 @@ function LocalFarmerPaymentCard({
               inputMode="decimal"
               value={form.amountInput}
               onChange={(e) => onFormChange('amountInput', e.target.value)}
-              className="w-full rounded-lg border border-[#E8E4DF] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[--color-border] px-3 py-2 text-sm"
             />
           </div>
           <div className="flex gap-2">
@@ -434,8 +433,8 @@ function LocalFarmerPaymentCard({
                 onClick={() => onFormChange('channel', ch)}
                 className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   form.channel === ch
-                    ? 'bg-[#2D5A1B] text-white'
-                    : 'border border-[#E8E4DF] text-gray-600'
+                    ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                    : 'border border-[--color-border] text-[--color-text-secondary]'
                 }`}
               >
                 {t(ch === PAYMENT_CHANNELS.CASH ? 'payment.channel.cash' : 'payment.channel.upi')}
@@ -446,7 +445,7 @@ function LocalFarmerPaymentCard({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm text-white disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-[--color-primary] px-4 py-2 text-sm text-[--color-text-inverse] disabled:opacity-60"
           >
             {saving && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
             {t('reconciliation.record_local_farmer_payment_button')}
@@ -455,7 +454,7 @@ function LocalFarmerPaymentCard({
       )}
 
       {errorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(errorKey)}
         </p>
       )}
@@ -476,12 +475,12 @@ function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, 
   const unit = assignment.unit ?? UNIT_TYPES.KG
 
   return (
-    <div className="mb-2 rounded-xl border border-[#E8E4DF] bg-white px-4 py-3">
+    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-gray-900">{assignment.productName}</p>
-          <p className="text-xs text-gray-500">{assignment.farmerName}</p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="font-medium text-[--color-text-primary]">{assignment.productName}</p>
+          <p className="text-xs text-[--color-text-secondary]">{assignment.farmerName}</p>
+          <p className="mt-1 text-sm text-[--color-text-secondary]">
             {t('delivery.expected_qty_label')}: {assignment.outgoingQty ?? 0} {unitStr(unit, t)}
           </p>
         </div>
@@ -493,18 +492,18 @@ function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, 
               step={0.1}
               value={draftQty}
               onChange={(e) => onDraftChange(assignment.assignmentId, e.target.value)}
-              className="w-24 min-h-[44px] rounded-lg border border-[#E8E4DF] px-2 py-2 text-sm text-right"
+              className="w-24 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-2 text-sm text-right"
             />
           ) : (
-            <span className="text-sm font-medium text-gray-900">{savedQty}</span>
+            <span className="text-sm font-medium text-[--color-text-primary]">{savedQty}</span>
           )}
-          <span className="text-xs text-gray-500">{unitStr(unit, t)}</span>
+          <span className="text-xs text-[--color-text-secondary]">{unitStr(unit, t)}</span>
           {dirty && (
             <button
               type="button"
               onClick={() => onSave(assignment)}
               disabled={saving}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-[#2D5A1B] text-sm font-medium text-[#2D5A1B] disabled:opacity-50"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-[--color-primary] text-sm font-medium text-[--color-primary] disabled:opacity-50"
             >
               {saving
                 ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
@@ -514,7 +513,7 @@ function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, 
         </div>
       </div>
       {rowErrorKey && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p className="mt-2 text-sm text-[--color-error]" role="alert">
           {t(rowErrorKey)}
         </p>
       )}
@@ -746,10 +745,7 @@ export default function Reconciliation() {
       let amountPaidPaise
       if (form.status === 'unpaid') {
         amountPaidPaise = 0
-      } else if (form.status === 'paid') {
-        amountPaidPaise = payment.amountDue ?? 0
       } else {
-        // partial — validate before sending
         amountPaidPaise = rupeesToPaise(Number(form.amountInput))
         if (!Number.isFinite(amountPaidPaise) || amountPaidPaise <= 0) {
           setPaymentErrors((prev) => ({ ...prev, [id]: 'error.validation' }))
@@ -954,7 +950,7 @@ export default function Reconciliation() {
   // ── Render: loading ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#F0EDE8]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner size="lg" />
       </div>
     )
@@ -964,19 +960,19 @@ export default function Reconciliation() {
   const confirmedDiffs = priceDifferences.filter((d) => d.differenceConfirmed)
 
   return (
-    <div className="min-h-full space-y-4 bg-[#F0EDE8] px-4 pb-8 pt-4">
+    <div className="min-h-full space-y-4 bg-[--color-background] px-4 pb-8 pt-4">
       {/* Header */}
       <header className="flex flex-wrap items-start justify-between gap-2">
         <StateMachineBadge state={currentState} />
         {marketDate && (
-          <p className="text-right text-sm text-gray-600">
+          <p className="text-right text-sm text-[--color-text-secondary]">
             {formatMarketDate(marketDate, lang)}
           </p>
         )}
       </header>
 
       {currentState != null && !isReconciliation && (
-        <p className="text-sm text-amber-600">{t('reconciliation.read_only_notice')}</p>
+        <p className="text-sm text-[--color-warning]">{t('reconciliation.read_only_notice')}</p>
       )}
 
       {/* Progress summary — reconciliation state only */}
@@ -1008,7 +1004,7 @@ export default function Reconciliation() {
       {/* Load error */}
       {loadErrorKey && (
         <div
-          className="rounded-xl border border-red-200 bg-white p-4 text-sm text-red-700"
+          className="rounded-xl border border-[--color-error-light] bg-[--color-surface] p-4 text-sm text-[--color-error]"
           role="alert"
         >
           {t(loadErrorKey)}
@@ -1016,7 +1012,7 @@ export default function Reconciliation() {
       )}
 
       {!loadErrorKey && !weekId && (
-        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-600">
+        <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
           {t('error.week_not_found')}
         </div>
       )}
@@ -1024,7 +1020,7 @@ export default function Reconciliation() {
       {weekId && !loadErrorKey && (
         <>
           {/* Tab bar */}
-          <div className="flex gap-1 overflow-x-auto rounded-xl border border-[#E8E4DF] bg-white p-1">
+          <div className="flex gap-1 overflow-x-auto rounded-xl border border-[--color-border] bg-[--color-surface] p-1">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -1032,8 +1028,8 @@ export default function Reconciliation() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-[#2D5A1B] text-white'
-                    : 'text-gray-600 hover:text-gray-800'
+                    ? 'bg-[--color-primary] text-[--color-text-inverse]'
+                    : 'text-[--color-text-secondary] hover:text-[--color-text-primary]'
                 }`}
               >
                 {t(tab.labelKey)}
@@ -1045,9 +1041,9 @@ export default function Reconciliation() {
           {activeTab === 'priceDiff' && (
             <div>
               {priceDifferences.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-[#E8E4DF] bg-white py-16">
-                  <CheckCircle size={32} strokeWidth={1.5} className="text-green-400" />
-                  <p className="mt-3 text-sm text-gray-500">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] py-16">
+                  <CheckCircle size={32} strokeWidth={1.5} className="text-[--color-success]" />
+                  <p className="mt-3 text-sm text-[--color-text-secondary]">
                     {t('reconciliation.no_differences')}
                   </p>
                 </div>
@@ -1072,7 +1068,7 @@ export default function Reconciliation() {
                       <button
                         type="button"
                         onClick={() => setConfirmedSectionOpen((v) => !v)}
-                        className="flex w-full items-center justify-between rounded-xl border border-[#E8E4DF] bg-white px-4 py-3 text-sm font-medium text-gray-700"
+                        className="flex w-full items-center justify-between rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3 text-sm font-medium text-[--color-text-secondary]"
                       >
                         <span>
                           {t('reconciliation.confirmed_section_header')} ({confirmedDiffs.length})
@@ -1107,7 +1103,7 @@ export default function Reconciliation() {
           {activeTab === 'outstationPayments' && (
             <div>
               {payments.length === 0 ? (
-                <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-500">
+                <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
                   {t('empty.farmer_list')}
                 </div>
               ) : (
@@ -1141,7 +1137,7 @@ export default function Reconciliation() {
           {activeTab === 'localPayments' && (
             <div>
               {localFarmerGroups.length === 0 ? (
-                <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-500">
+                <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
                   {t('market_day.no_local_farmers')}
                 </div>
               ) : (
@@ -1176,12 +1172,12 @@ export default function Reconciliation() {
           {activeTab === 'deliveryEdit' && (
             <div>
               {isReconciliation && !correctionWindowOpen && (
-                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                <div className="mb-3 rounded-xl border border-[--color-warning-light] bg-[--color-warning-light] p-4 text-sm text-[--color-warning]">
                   {t('reconciliation.correction_window_closed')}
                 </div>
               )}
               {assignments.length === 0 ? (
-                <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 text-sm text-gray-500">
+                <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
                   {t('empty.delivery_list')}
                 </div>
               ) : (
@@ -1209,10 +1205,10 @@ export default function Reconciliation() {
 
       {/* ── Close Week ─────────────────────────────────────────────────────── */}
       {isReconciliation && weekId && (
-        <div className="rounded-xl border border-[#E8E4DF] bg-white p-4 space-y-3">
+        <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 space-y-3">
           {closeBlockers && closeBlockers.length > 0 && (
             <div role="alert">
-              <p className="mb-2 text-sm font-medium text-red-700">
+              <p className="mb-2 text-sm font-medium text-[--color-error]">
                 {t('reconciliation.close_blocked_header')}
               </p>
               <ul className="space-y-1.5">
@@ -1224,7 +1220,7 @@ export default function Reconciliation() {
                         setActiveTab(BLOCKER_TAB_MAP[blocker.type] ?? 'priceDiff')
                         setCloseBlockers(null)
                       }}
-                      className="w-full text-left text-sm text-red-600 underline underline-offset-2 hover:text-red-800"
+                      className="w-full text-left text-sm text-[--color-error] underline underline-offset-2 hover:text-[--color-error]"
                     >
                       {blocker.label}
                     </button>
@@ -1234,20 +1230,20 @@ export default function Reconciliation() {
             </div>
           )}
           {closeWeekError && (
-            <p className="text-sm text-red-600" role="alert">{t(closeWeekError)}</p>
+            <p className="text-sm text-[--color-error]" role="alert">{t(closeWeekError)}</p>
           )}
           {!closeWeekConfirm ? (
             <button
               type="button"
               onClick={() => { setCloseBlockers(null); setCloseWeekError(null); setCloseWeekConfirm(true) }}
               disabled={closingWeek}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#2D5A1B] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-[--color-primary] px-4 py-2 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
             >
               {t('transition.reconciliation_to_closed.button')}
             </button>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-[--color-text-secondary]">
                 {t('transition.reconciliation_to_closed.confirm_body')}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -1255,7 +1251,7 @@ export default function Reconciliation() {
                   type="button"
                   onClick={handleCloseWeek}
                   disabled={closingWeek}
-                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[--color-error] px-4 py-2 text-sm font-medium text-[--color-text-inverse] disabled:opacity-60"
                 >
                   {closingWeek && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
                   {t('transition.reconciliation_to_closed.confirm_title')}
@@ -1264,7 +1260,7 @@ export default function Reconciliation() {
                   type="button"
                   onClick={() => setCloseWeekConfirm(false)}
                   disabled={closingWeek}
-                  className="rounded-xl border border-[#E8E4DF] px-4 py-2 text-sm font-medium text-gray-600 disabled:opacity-60"
+                  className="rounded-xl border border-[--color-border] px-4 py-2 text-sm font-medium text-[--color-text-secondary] disabled:opacity-60"
                 >
                   {t('action.cancel')}
                 </button>
@@ -1277,10 +1273,10 @@ export default function Reconciliation() {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[#E8E4DF] bg-white p-4 shadow-lg"
+          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[--color-border] bg-[--color-surface] p-4 shadow-lg"
           role="status"
         >
-          <p className="text-sm font-medium text-gray-800">{t(toast.key)}</p>
+          <p className="text-sm font-medium text-[--color-text-primary]">{t(toast.key)}</p>
         </div>
       )}
     </div>
