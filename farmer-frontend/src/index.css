@@ -241,4 +241,12 @@ html[data-theme="dark"] .btn-secondary {
   .nav-pill-active {
     @apply border-[--color-primary] bg-[--color-primary-light] text-[--color-primary];
   }
+
+  .settings-gear-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .settings-gear-icon-open {
+    transform: rotate(90deg);
+  }
 }

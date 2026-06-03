@@ -88,6 +88,7 @@ const VOLUNTEER_WRITE_ROUTES = Object.freeze([
 
 /** Volunteer read allowlist (ARCHITECTURE §7.3, B7). */
 const VOLUNTEER_READ_ROUTES = Object.freeze([
+  'GET /api/v1/weeks',
   'GET /api/v1/weeks/:weekId',
   'GET /api/v1/weeks/:weekId/produce',
   'GET /api/v1/weeks/:weekId/delivery',

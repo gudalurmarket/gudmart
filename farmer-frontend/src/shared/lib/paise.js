@@ -10,6 +10,15 @@ export function formatINR (paise) {
   return `₹${rupees}`
 }
 
+/** Display-only — allows negative integer paise (e.g. closing balance shortfall). */
+export function formatSignedINR (paise) {
+  if (!Number.isInteger(paise)) {
+    throw new TypeError(`formatSignedINR: expected integer paise, got: ${paise}`)
+  }
+  const sign = paise < 0 ? '−' : ''
+  return `${sign}₹${(Math.abs(paise) / 100).toFixed(2)}`
+}
+
 /** Display helper — never throws; use when API data may be incomplete. */
 export function formatINROptional (paise) {
   if (!Number.isInteger(paise) || paise < 0) return '—'

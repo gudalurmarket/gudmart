@@ -10,7 +10,13 @@ import {
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
-import { apiDelete, apiGet, apiPatch } from '../../shared/lib/api.js'
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  WalletInsufficientError,
+} from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { ORDER_STATUS, WEEK_STATES } from '../../shared/lib/constants.js'
@@ -122,6 +128,13 @@ function getOrderValue (order) {
     }
   }
   return hasLineValue ? sum : null
+}
+
+function walletCoversOrder (order) {
+  const orderValue = getOrderValue(order)
+  if (orderValue == null || orderValue <= 0) return true
+  const walletBalance = getWalletBalance(order)
+  return walletBalance != null && walletBalance >= orderValue
 }
 
 function lineItemsHaveValues (lineItems) {
@@ -483,6 +496,8 @@ function OrderDetail ({
   t,
   onEdit,
   onCancel,
+  onConfirm,
+  confirming,
 }) {
   const showValueColumn = lineItemsHaveValues(order.lineItems)
   const walletBalance = getWalletBalance(order)
@@ -492,6 +507,7 @@ function OrderDetail ({
   const canConfirm =
     currentState === WEEK_STATES.OPEN
     && order.status === ORDER_STATUS.PENDING_PAYMENT
+  const walletReady = walletCoversOrder(order)
 
   return (
     <div className="mt-3 border-t border-[--color-border] pt-3">
@@ -578,12 +594,21 @@ function OrderDetail ({
         {canConfirm && (
           <button
             type="button"
-            disabled
-            title={t('order.confirm_via_topup_tooltip')}
-            className="inline-flex min-h-[44px] cursor-not-allowed items-center gap-1.5 rounded-lg border border-[--color-success-light] bg-[--color-success-light] px-3 py-2 text-sm font-medium text-[--color-success] opacity-50"
+            disabled={!walletReady || confirming}
+            title={
+              walletReady
+                ? undefined
+                : t('order.confirm_via_topup_tooltip')
+            }
+            onClick={() => onConfirm(order)}
+            className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[--color-success-light] bg-[--color-success-light] px-3 py-2 text-sm font-medium text-[--color-success] ${
+              !walletReady || confirming
+                ? 'cursor-not-allowed opacity-50'
+                : 'hover:opacity-90'
+            }`}
           >
             <CheckCircle size={16} strokeWidth={1.5} className="text-[--color-success]" />
-            {t('action.confirm_order')}
+            {confirming ? t('action.loading') : t('action.confirm_order')}
           </button>
         )}
       </div>
@@ -601,6 +626,8 @@ function OrderCard ({
   onToggle,
   onEdit,
   onCancel,
+  onConfirm,
+  confirmingOrderId,
 }) {
   return (
     <div className="rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
@@ -631,13 +658,21 @@ function OrderCard ({
           t={t}
           onEdit={onEdit}
           onCancel={onCancel}
+          onConfirm={onConfirm}
+          confirming={confirmingOrderId === order.orderId}
         />
       )}
     </div>
   )
 }
 
-function PendingPaymentRow ({ order, currentState, t }) {
+function PendingPaymentRow ({
+  order,
+  currentState,
+  t,
+  onConfirm,
+  confirming,
+}) {
   const walletBalance = getWalletBalance(order)
   const orderValue = getOrderValue(order)
   const shortfall =
@@ -647,6 +682,7 @@ function PendingPaymentRow ({ order, currentState, t }) {
   const canConfirm =
     currentState === WEEK_STATES.OPEN
     && order.status === ORDER_STATUS.PENDING_PAYMENT
+  const walletReady = walletCoversOrder(order)
 
   return (
     <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
@@ -673,12 +709,21 @@ function PendingPaymentRow ({ order, currentState, t }) {
       {canConfirm && (
         <button
           type="button"
-          disabled
-          title={t('order.confirm_via_topup_tooltip')}
-          className="mt-3 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg bg-[--color-success-light] py-2 text-sm font-medium text-[--color-success] opacity-50"
+          disabled={!walletReady || confirming}
+          title={
+            walletReady
+              ? undefined
+              : t('order.confirm_via_topup_tooltip')
+          }
+          onClick={() => onConfirm(order)}
+          className={`mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg bg-[--color-success-light] py-2 text-sm font-medium text-[--color-success] ${
+            !walletReady || confirming
+              ? 'cursor-not-allowed opacity-50'
+              : 'hover:opacity-90'
+          }`}
         >
           <CheckCircle size={16} strokeWidth={1.5} className="text-[--color-success]" />
-          {t('action.confirm_order')}
+          {confirming ? t('action.loading') : t('action.confirm_order')}
         </button>
       )}
     </div>
@@ -773,6 +818,8 @@ export default function OrderManagement () {
   const [cancelOrder, setCancelOrder] = useState(null)
   const [cancelLoading, setCancelLoading] = useState(false)
 
+  const [confirmingOrderId, setConfirmingOrderId] = useState(null)
+
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -821,6 +868,12 @@ export default function OrderManagement () {
   useEffect(() => {
     loadWeekAndOrders()
   }, [loadWeekAndOrders])
+
+  useEffect(() => {
+    if (mainTab === 'pending_payment' && weekId) {
+      fetchOrders(weekId)
+    }
+  }, [mainTab, weekId, fetchOrders])
 
   const loadProduce = useCallback(async () => {
     if (!weekId || produceLoaded) return
@@ -894,6 +947,25 @@ export default function OrderManagement () {
       setEditErrorKey(apiErrorTranslationKey(err))
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  const handleConfirmOrder = async (order) => {
+    if (!weekId || !order?.orderId) return
+    setConfirmingOrderId(order.orderId)
+    try {
+      await apiPost(`/api/v1/weeks/${weekId}/orders/${order.orderId}/confirm`, {})
+      await fetchOrders(weekId)
+      setToast({ key: 'toast.order_confirmed' })
+    } catch (err) {
+      if (err instanceof WalletInsufficientError) {
+        await fetchOrders(weekId)
+        setToast({ key: 'toast.wallet_insufficient' })
+      } else {
+        setToast({ key: apiErrorTranslationKey(err) })
+      }
+    } finally {
+      setConfirmingOrderId(null)
     }
   }
 
@@ -1061,6 +1133,8 @@ export default function OrderManagement () {
                       onToggle={handleToggleExpand}
                       onEdit={setEditOrder}
                       onCancel={setCancelOrder}
+                      onConfirm={handleConfirmOrder}
+                      confirmingOrderId={confirmingOrderId}
                     />
                   ))}
                 </div>
@@ -1088,6 +1162,8 @@ export default function OrderManagement () {
                     order={order}
                     currentState={currentState}
                     t={t}
+                    onConfirm={handleConfirmOrder}
+                    confirming={confirmingOrderId === order.orderId}
                   />
                 ))
               )}

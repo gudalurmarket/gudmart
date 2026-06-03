@@ -1,0 +1,22 @@
+{
+  "_id": "synonyms",
+  "table": [
+    {
+      "canonical": "Tomato",
+      "aliases": ["tom", "tomato", "தக்காளி", "thakkali"],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Coconut",
+      "aliases": ["coconut", "coco", "தேங்காய்", "thengai"],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Spinach",
+      "aliases": ["spinach", "keerai", "கீரை", "பசலை"],
+      "language": "mixed"
+    }
+  ],
+  "updated_at": "2026-01-01T00:00:00.000Z",
+  "updated_by": "system"
+}

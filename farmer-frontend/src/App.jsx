@@ -22,6 +22,9 @@ const Registrations = React.lazy(() => import('./operator/pages/Registrations.js
 const CustomerRegistration = React.lazy(() => import('./operator/pages/CustomerRegistration.jsx'))
 const FarmerRegistration = React.lazy(() => import('./operator/pages/FarmerRegistration.jsx'))
 const CatalogueManagement = React.lazy(() => import('./operator/pages/CatalogueManagement.jsx'))
+const HistoryWeeks = React.lazy(() => import('./operator/pages/HistoryWeeks.jsx'))
+const HistoryWeekDetail = React.lazy(() => import('./operator/pages/HistoryWeekDetail.jsx'))
+const CustomerWallet = React.lazy(() => import('./operator/pages/CustomerWallet.jsx'))
 
 const DeliveryEntry = React.lazy(() => import('./volunteer/pages/DeliveryEntry.jsx'))
 const PackingList = React.lazy(() => import('./volunteer/pages/PackingList.jsx'))
@@ -72,6 +75,9 @@ function OperatorRoutes () {
         <Route path="registrations/customers" element={<CustomerRegistration />} />
         <Route path="registrations/farmers" element={<FarmerRegistration />} />
         <Route path="registrations/catalogue" element={<CatalogueManagement />} />
+        <Route path="history/weeks" element={<HistoryWeeks />} />
+        <Route path="history/weeks/:weekId" element={<HistoryWeekDetail />} />
+        <Route path="customers/:customerId/wallet" element={<CustomerWallet />} />
       </Routes>
     </Suspense>
   )

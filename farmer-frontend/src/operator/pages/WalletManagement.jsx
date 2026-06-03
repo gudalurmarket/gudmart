@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ChevronRight,
   Loader2,
-  Receipt,
   Users,
   X,
 } from 'lucide-react'
@@ -20,6 +19,7 @@ import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { PAYMENT_CHANNELS, WALLET_TX_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
 import { formatINR, parseINR } from '../../shared/lib/paise.js'
+import { WalletLedgerSection } from '../components/walletLedger.jsx'
 
 const TOAST_DISMISS_MS = 6000
 
@@ -30,115 +30,6 @@ const TOPUP_ALLOWED_STATES = new Set([
   WEEK_STATES.DELIVERY,
   WEEK_STATES.MARKET_DAY,
 ])
-
-const CREDIT_TX_TYPES = new Set([
-  WALLET_TX_TYPES.TOP_UP,
-  WALLET_TX_TYPES.ORDER_DEBIT_REVERSAL,
-  WALLET_TX_TYPES.PRICE_DIFF_CREDIT,
-  WALLET_TX_TYPES.BALANCE_PAYMENT,
-])
-
-const TXN_TYPE_LABEL_KEYS = {
-  [WALLET_TX_TYPES.TOP_UP]: 'txn.type.top_up',
-  [WALLET_TX_TYPES.ORDER_DEBIT]: 'txn.type.order_debit',
-  [WALLET_TX_TYPES.ORDER_DEBIT_REVERSAL]: 'txn.type.order_debit_reversal',
-  [WALLET_TX_TYPES.PRICE_DIFF_CREDIT]: 'txn.type.price_diff_credit',
-  [WALLET_TX_TYPES.PRICE_DIFF_DEBIT]: 'txn.type.price_diff_debit',
-  [WALLET_TX_TYPES.CUSTOMER_DUE]: 'txn.type.customer_due',
-  [WALLET_TX_TYPES.BALANCE_PAYMENT]: 'txn.type.balance_payment',
-  [WALLET_TX_TYPES.MANUAL_ADJUSTMENT]: 'txn.type.manual_adjustment',
-}
-
-const CHANNEL_LABEL_KEYS = {
-  [PAYMENT_CHANNELS.CASH]: 'channel.cash',
-  [PAYMENT_CHANNELS.UPI]: 'channel.upi',
-  [PAYMENT_CHANNELS.SYSTEM]: 'channel.system',
-}
-
-const CHANNEL_BADGE_CLASS = {
-  [PAYMENT_CHANNELS.CASH]: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
-  [PAYMENT_CHANNELS.UPI]: 'bg-[--color-info-light] text-[--color-info]',
-  [PAYMENT_CHANNELS.SYSTEM]: 'bg-[--color-surface-raised] text-[--color-text-secondary]',
-}
-
-function formatLedgerDateTime (isoString, lang) {
-  if (!isoString) return ''
-  const date = new Date(isoString)
-  if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date)
-}
-
-function isCreditTransaction (txn, chronologicallyOlderTxn) {
-  if (txn.type === WALLET_TX_TYPES.MANUAL_ADJUSTMENT) {
-    if (
-      chronologicallyOlderTxn
-      && typeof chronologicallyOlderTxn.runningBalance === 'number'
-      && typeof txn.runningBalance === 'number'
-    ) {
-      return txn.runningBalance > chronologicallyOlderTxn.runningBalance
-    }
-    if (typeof txn.runningBalance === 'number' && typeof txn.amount === 'number') {
-      return txn.runningBalance >= txn.amount
-    }
-    return true
-  }
-  return CREDIT_TX_TYPES.has(txn.type)
-}
-
-function LedgerRow ({ txn, olderTxn, t, lang }) {
-  const credit = isCreditTransaction(txn, olderTxn)
-  const typeKey = TXN_TYPE_LABEL_KEYS[txn.type]
-  const typeLabel = typeKey ? t(typeKey) : txn.type
-  const channelKey = txn.channel ? CHANNEL_LABEL_KEYS[txn.channel] : null
-  const amountPaise = typeof txn.amount === 'number' ? txn.amount : 0
-  const runningBalance = txn.runningBalance ?? txn.running_balance
-
-  return (
-    <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[--color-text-primary]">{typeLabel}</p>
-          {channelKey && (
-            <span
-              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CHANNEL_BADGE_CLASS[txn.channel] ?? 'bg-[--color-surface-raised] text-[--color-text-secondary]'}`}
-            >
-              {t(channelKey)}
-            </span>
-          )}
-          {(txn.referenceNote ?? txn.reference_note) && (
-            <p className="mt-1 text-xs text-[--color-text-secondary]">
-              {txn.referenceNote ?? txn.reference_note}
-            </p>
-          )}
-          <p className="mt-1 text-xs text-[--color-text-disabled]">
-            {formatLedgerDateTime(txn.createdAt ?? txn.created_at, lang)}
-          </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p
-            className={`text-sm font-semibold ${credit ? 'text-[--color-primary]' : 'text-[--color-error]'}`}
-          >
-            {credit ? '+' : '−'}
-            {formatINR(amountPaise)}
-          </p>
-          {typeof runningBalance === 'number' && (
-            <p className="mt-0.5 text-xs text-[--color-text-secondary]">
-              {t('wallet.ledger.running_balance')}
-              {': '}
-              {formatINR(runningBalance)}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function PendingOrdersPrompt ({ count, t, onDismiss, onGoToOrders }) {
   return (
@@ -274,7 +165,7 @@ function TopUpForm ({
   )
 }
 
-function CustomerWalletDetail ({
+export function CustomerWalletDetail ({
   customerId,
   customerName,
   currentState,
@@ -438,27 +329,7 @@ function CustomerWalletDetail ({
         <p className="text-sm text-[--color-text-secondary]">{t('wallet.topup_not_available')}</p>
       )}
 
-      <section>
-        <h2 className="mb-3 text-base font-semibold text-[--color-text-primary]">
-          {t('wallet.ledger.title')}
-        </h2>
-        {transactions.length === 0 ? (
-          <div className="flex flex-col items-center py-8 text-center">
-            <Receipt size={28} strokeWidth={1.5} className="text-[--color-text-disabled]" />
-            <p className="mt-2 text-sm text-[--color-text-secondary]">{t('wallet.ledger.empty')}</p>
-          </div>
-        ) : (
-          transactions.map((txn, index) => (
-            <LedgerRow
-              key={txn.txnId ?? txn.txn_id ?? `${txn.createdAt}-${index}`}
-              txn={txn}
-              olderTxn={transactions[index + 1]}
-              t={t}
-              lang={lang}
-            />
-          ))
-        )}
-      </section>
+      <WalletLedgerSection transactions={transactions} t={t} lang={lang} />
     </div>
   )
 }
@@ -470,6 +341,7 @@ function CustomerList ({
   currentState,
   t,
   onSelectCustomer,
+  embedded = false,
 }) {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -488,7 +360,9 @@ function CustomerList ({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-[--color-text-primary]">{t('wallet.page_title')}</h1>
+        <h1 className="text-lg font-semibold text-[--color-text-primary]">
+          {embedded ? t('registration.tab.wallet_topup') : t('wallet.page_title')}
+        </h1>
         <StateMachineBadge state={currentState} />
       </div>
 
@@ -513,7 +387,7 @@ function CustomerList ({
               <li key={customer.customerId}>
                 <button
                   type="button"
-                  onClick={() => onSelectCustomer(customer.customerId)}
+                  onClick={() => onSelectCustomer(customer.customerId, customer)}
                   className="mb-2 flex w-full items-center justify-between rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3 text-left"
                 >
                   <div className="min-w-0">
@@ -542,8 +416,16 @@ function CustomerList ({
   )
 }
 
-export default function WalletManagement () {
+function walletSearchParams (embedded, customerId) {
+  const params = new URLSearchParams()
+  if (embedded) params.set('tab', 'wallet')
+  if (customerId) params.set('customerId', customerId)
+  return params
+}
+
+export default function WalletManagement ({ embedded = false } = {}) {
   const { t, lang } = useLang()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const customerId = searchParams.get('customerId')
 
@@ -614,16 +496,24 @@ export default function WalletManagement () {
     return found?.name ?? ''
   }, [customers, customerId])
 
-  const handleSelectCustomer = (id) => {
-    setSearchParams({ customerId: id })
+  const handleSelectCustomer = (id, customer) => {
+    navigate(`/operator/customers/${id}/wallet`, {
+      state: { customerName: customer?.name ?? '' },
+    })
   }
 
+  useEffect(() => {
+    if (customerId) {
+      navigate(`/operator/customers/${customerId}/wallet`, { replace: true })
+    }
+  }, [customerId, navigate])
+
   const handleBack = () => {
-    setSearchParams({})
+    setSearchParams(walletSearchParams(embedded, null))
     setSearchQuery('')
   }
 
-  if (weekLoading || (!customerId && customersLoading)) {
+  if (weekLoading || customersLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center bg-[--color-background]">
         <LoadingSpinner size="lg" />
@@ -632,35 +522,22 @@ export default function WalletManagement () {
   }
 
   return (
-    <div className="min-h-full bg-[--color-background] p-4 pb-24">
-      {customersErrorKey && !customerId && (
+    <div className={embedded ? 'min-h-full' : 'min-h-full bg-[--color-background] p-4 pb-24'}>
+      {customersErrorKey && (
         <p className="mb-4 text-sm text-[--color-error]" role="alert">
           {t(customersErrorKey)}
         </p>
       )}
 
-      {customerId ? (
-        <CustomerWalletDetail
-          customerId={customerId}
-          customerName={customerName}
-          currentState={currentState}
-          activeWeekId={activeWeekId}
-          topUpAllowed={topUpAllowed}
-          t={t}
-          lang={lang}
-          onBack={handleBack}
-          onToast={setToastKey}
-        />
-      ) : (
-        <CustomerList
-          customers={customers}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          currentState={currentState}
-          t={t}
-          onSelectCustomer={handleSelectCustomer}
-        />
-      )}
+      <CustomerList
+        customers={customers}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        currentState={currentState}
+        t={t}
+        onSelectCustomer={handleSelectCustomer}
+        embedded={embedded}
+      />
 
       {toastKey && (
         <div

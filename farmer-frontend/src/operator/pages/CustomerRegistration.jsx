@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, Pencil, Plus, X } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import WalletManagement from './WalletManagement.jsx'
+import { ArrowLeft, Loader2, Pencil, Plus, Wallet, X } from 'lucide-react'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
@@ -170,7 +171,15 @@ function CustomerModal ({ mode, customer, onClose, onSaved, t }) {
   )
 }
 
-function CustomerRow ({ customer, onEdit, onToggleActive, pendingDeactivateId, setPendingDeactivateId, t }) {
+function CustomerRow ({
+  customer,
+  onEdit,
+  onTopUp,
+  onToggleActive,
+  pendingDeactivateId,
+  setPendingDeactivateId,
+  t,
+}) {
   const isPending = pendingDeactivateId === customer.customerId
 
   const handleDeactivateClick = (event) => {
@@ -209,6 +218,14 @@ function CustomerRow ({ customer, onEdit, onToggleActive, pendingDeactivateId, s
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
+          onClick={() => onTopUp(customer)}
+          className="inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-[--color-primary-light] bg-[--color-primary-light] px-2.5 py-1.5 text-xs font-medium text-[--color-primary]"
+        >
+          <Wallet size={14} strokeWidth={1.5} aria-hidden="true" />
+          {t('registration.customer.topup_button')}
+        </button>
+        <button
+          type="button"
           onClick={() => onEdit(customer)}
           className="rounded-lg p-1.5 text-[--color-text-secondary] hover:bg-[--color-surface-raised]"
           aria-label={t('action.edit')}
@@ -240,10 +257,53 @@ function CustomerRow ({ customer, onEdit, onToggleActive, pendingDeactivateId, s
   )
 }
 
+function RegistrationTabs ({ activeTab, onTabChange, t }) {
+  const tabs = [
+    { id: 'customers', labelKey: 'registration.tab.customers' },
+    { id: 'wallet', labelKey: 'registration.tab.wallet_topup' },
+  ]
+
+  return (
+    <div className="mb-4 flex gap-1 rounded-xl border border-[--color-border] bg-[--color-surface] p-1">
+      {tabs.map(({ id, labelKey }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onTabChange(id)}
+          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            activeTab === id
+              ? 'bg-[--color-primary] text-[--color-text-inverse]'
+              : 'text-[--color-text-secondary]'
+          }`}
+        >
+          {t(labelKey)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function CustomerRegistration () {
   const { t } = useLang()
   const { state } = useWeekState()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') === 'wallet' ? 'wallet' : 'customers'
+
+  const handleTabChange = (tabId) => {
+    if (tabId === 'wallet') {
+      const customerId = searchParams.get('customerId')
+      setSearchParams(customerId ? { tab: 'wallet', customerId } : { tab: 'wallet' })
+    } else {
+      setSearchParams({})
+    }
+  }
+
+  const handleTopUp = (customer) => {
+    navigate(`/operator/customers/${customer.customerId}/wallet`, {
+      state: { customerName: customer.name ?? '' },
+    })
+  }
 
   const [customers, setCustomers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -331,9 +391,8 @@ export default function CustomerRegistration () {
   return (
     <div
       className="min-h-full bg-[--color-background] p-4 pb-24"
-      onClick={handleContainerClick}
+      onClick={activeTab === 'customers' ? handleContainerClick : undefined}
     >
-      {/* Header */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
@@ -349,16 +408,24 @@ export default function CustomerRegistration () {
           </h1>
           <StateMachineBadge state={state} />
         </div>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleAdd() }}
-          className="flex items-center gap-1.5 rounded-xl bg-[--color-primary] px-3 py-2 text-sm font-medium text-[--color-text-inverse]"
-        >
-          <Plus size={16} strokeWidth={1.5} aria-hidden="true" />
-          {t('registration.customer.add_button')}
-        </button>
+        {activeTab === 'customers' && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleAdd() }}
+            className="flex items-center gap-1.5 rounded-xl bg-[--color-primary] px-3 py-2 text-sm font-medium text-[--color-text-inverse]"
+          >
+            <Plus size={16} strokeWidth={1.5} aria-hidden="true" />
+            {t('registration.customer.add_button')}
+          </button>
+        )}
       </div>
 
+      <RegistrationTabs activeTab={activeTab} onTabChange={handleTabChange} t={t} />
+
+      {activeTab === 'wallet' ? (
+        <WalletManagement embedded />
+      ) : (
+        <>
       {/* Search + filter bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
@@ -396,17 +463,18 @@ export default function CustomerRegistration () {
       ) : (
         <div className="rounded-lg border border-[--color-border] bg-[--color-surface] shadow-sm">
           {/* Table header */}
-          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 border-b border-[--color-border] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[--color-text-secondary] sm:grid">
+          <div className="hidden grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b border-[--color-border] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[--color-text-secondary] sm:grid">
             <span>{t('registration.customer.name_label')} / {t('registration.customer.phone_label')}</span>
             <span className="text-right">{t('wallet.current_balance')}</span>
             <span>{t('status.active')}</span>
-            <span className="col-span-2">{t('action.edit')}</span>
+            <span>{t('registration.tab.wallet_topup')} / {t('action.edit')}</span>
           </div>
           {filtered.map((customer) => (
             <CustomerRow
               key={customer.customerId}
               customer={customer}
               onEdit={handleEdit}
+              onTopUp={handleTopUp}
               onToggleActive={handleToggleActive}
               pendingDeactivateId={pendingDeactivateId}
               setPendingDeactivateId={(id) => { setPendingDeactivateId(id) }}
@@ -414,6 +482,8 @@ export default function CustomerRegistration () {
             />
           ))}
         </div>
+      )}
+        </>
       )}
 
       {/* Slide-in modal */}

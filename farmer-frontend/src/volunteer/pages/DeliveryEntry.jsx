@@ -3,10 +3,21 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { WEEK_STATES } from '../../shared/lib/constants.js'
 import { apiGet, apiPatch } from '../../shared/lib/api.js'
 import { useLang } from '../../shared/lib/LangContext.jsx'
-import useWeekState from '../../shared/hooks/useWeekState.js'
+import useVolunteerWeek from '../hooks/useVolunteerWeek.js'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import { enqueueEntry, loadQueue, flushQueue } from '../lib/deliverySync'
+
+/** Map GET /delivery assignment rows to volunteer card fields. */
+function normalizeDeliveryAssignment (assignment) {
+  return {
+    ...assignment,
+    nameEn: assignment.nameEn ?? assignment.productName ?? assignment.productId,
+    nameTa: assignment.nameTa ?? assignment.productName ?? assignment.productId,
+    expectedQty: assignment.expectedQty ?? assignment.outgoingQty ?? 0,
+    unit: assignment.unit ?? 'kg',
+  }
+}
 
 // ─── SECTION 2: DELIVERY ITEM ROW ─────────────────────────────────────────
 
@@ -190,10 +201,8 @@ function AllocationPanel ({ allocations, unit }) {
 
 export default function DeliveryEntry () {
   const { t, lang } = useLang()
-  const { week, state, loading: weekLoading } = useWeekState()
-
-  // Resolve weekId from either the normalised field or raw _id
-  const weekId = week?.weekId ?? week?._id ?? null
+  const { weekId, state, loading: weekLoading, errorKey: weekErrorKey } =
+    useVolunteerWeek(WEEK_STATES.DELIVERY)
 
   // ── Page state ──────────────────────────────────────────────────────────
   const [assignments, setAssignments] = useState([])
@@ -227,7 +236,7 @@ export default function DeliveryEntry () {
     setLoadError(null)
     try {
       const data = await apiGet(`/api/v1/weeks/${wId}/delivery`)
-      setAssignments(data.assignments ?? [])
+      setAssignments((data.assignments ?? []).map(normalizeDeliveryAssignment))
     } catch (err) {
       setLoadError(err.code ?? 'UNKNOWN')
     } finally {
@@ -354,19 +363,16 @@ export default function DeliveryEntry () {
     )
   }
 
-  // ── Load error ───────────────────────────────────────────────────────────
-  if (loadError) {
-    const errorKey = `error.${loadError.toLowerCase()}`
+  if (weekErrorKey) {
     return (
       <div className="min-h-full bg-[--color-background] px-4 py-6">
         {headerEl}
-        <p className="mt-4 text-sm text-[--color-error]">{t(errorKey)}</p>
+        <p className="mt-4 text-sm text-[--color-error]">{t(weekErrorKey)}</p>
       </div>
     )
   }
 
-  // ── State gate — only available in 'delivery' state ──────────────────────
-  if (state !== WEEK_STATES.DELIVERY) {
+  if (!weekId) {
     return (
       <div className="min-h-full bg-[--color-background] px-4 py-6">
         {headerEl}
@@ -375,6 +381,17 @@ export default function DeliveryEntry () {
             {t('delivery.not_available_in_state')}
           </p>
         </div>
+      </div>
+    )
+  }
+
+  // ── Load error ───────────────────────────────────────────────────────────
+  if (loadError) {
+    const errorKey = `error.${loadError.toLowerCase()}`
+    return (
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
+        {headerEl}
+        <p className="mt-4 text-sm text-[--color-error]">{t(errorKey)}</p>
       </div>
     )
   }
@@ -394,7 +411,7 @@ export default function DeliveryEntry () {
       {/* Assignment cards */}
       {assignments.length === 0 ? (
         <p className="mt-8 text-sm text-[--color-text-secondary] text-center">
-          {t('empty.delivery_list')}
+          {t('empty.no_items')}
         </p>
       ) : (
         <div className="flex flex-col gap-3">

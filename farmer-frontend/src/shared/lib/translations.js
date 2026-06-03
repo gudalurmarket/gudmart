@@ -101,8 +101,8 @@ export const translations = {
   },
   'order.summary.title': { en: 'Order Summary', ta: 'Order Summary' },
   'order.confirm_via_topup_tooltip': {
-    en: 'Record a wallet top-up first — confirmed automatically when balance covers the order',
-    ta: 'Record a wallet top-up first — confirmed automatically when balance covers the order',
+    en: 'Record a wallet top-up first — confirm becomes available when balance covers the order',
+    ta: 'Record a wallet top-up first — confirm becomes available when balance covers the order',
   },
   'action.edit_order': { en: 'Edit Order', ta: 'Edit Order' },
   'action.cancel_order': { en: 'Cancel Order', ta: 'Cancel Order' },
@@ -204,6 +204,10 @@ export const translations = {
   'action.copied': { en: 'Copied', ta: 'நகலெடுக்கப்பட்டது' },
 
   // GROUP 12 — Navigation labels (operator screens)
+  'nav.bottom.title': { en: 'Quick navigation', ta: 'விரைவு வழிசெலுத்தல்' },
+  'nav.menu.open': { en: 'Open menu', ta: 'மெனுவைத் திற' },
+  'nav.menu.close': { en: 'Close menu', ta: 'மெனுவை மூடு' },
+  'nav.menu.title': { en: 'Menu', ta: 'மெனு' },
   'nav.dashboard': { en: 'Dashboard', ta: 'டாஷ்போர்டு' }, // TA: REVIEW REQUIRED
   'nav.week_setup': { en: 'Week Setup', ta: 'வார அமைப்பு' },
   'nav.order_intake': { en: 'Order Intake', ta: 'ஆர்டர் பெறுதல்' },
@@ -213,6 +217,7 @@ export const translations = {
   'nav.market_day': { en: 'Market Day', ta: 'சந்தை நாள்' },
   'nav.reconciliation': { en: 'Reconciliation', ta: 'பரிசீலனை' }, // TA: REVIEW REQUIRED
   'nav.weekly_summary': { en: 'Weekly Summary', ta: 'வார சுருக்கம்' },
+  'nav.history': { en: 'History', ta: 'வரலாறு' },
   'nav.registrations': { en: 'Registrations', ta: 'பதிவுகள்' },
 
   // GROUP 13 — Navigation labels (volunteer screens)
@@ -400,6 +405,7 @@ export const translations = {
   'empty.reconciliation_list': { en: 'No items to reconcile.', ta: 'பரிசீலிக்க எதுவும் இல்லை.' },
   'empty.walkin_sales': { en: 'No walk-in sales found.', ta: 'நுழைவு விற்பனைகள் எதுவும் இல்லை.' },
   'empty.dispatch_list': { en: 'No packed orders to dispatch yet.', ta: 'இன்னும் அனுப்ப பேக் செய்யப்பட்ட ஆர்டர்கள் இல்லை.' },
+  'empty.no_items': { en: 'No items to display.', ta: 'காட்ட எதுவும் இல்லை.' },
 
   // GROUP 19 — SSE / connectivity status
   'sse.status.connected': { en: 'Connected', ta: 'இணைக்கப்பட்டது' },
@@ -558,13 +564,19 @@ export const translations = {
     ta: '\nமொத்தம்: {{totalAmount}}. தயவு செய்து உறுதி செய்யவும்.',
   }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
 
-  // GROUP 23 — Language toggle
+  // GROUP 23 — Language toggle & settings menu
+  'settings.menu_label': { en: 'Settings', ta: 'அமைப்புகள்' },
   'lang.toggle_label': { en: 'Language', ta: 'மொழி' },
   'lang.english': { en: 'English', ta: 'ஆங்கிலம்' },
   'lang.tamil': { en: 'Tamil', ta: 'தமிழ்' },
 
   // GROUP 24 — Week summary labels
   'summary.page_title': { en: 'Weekly Summary', ta: 'வார சுருக்கம்' },
+  'history.weeks.title': { en: 'All Weeks', ta: 'அனைத்து வாரங்கள்' },
+  'history.weeks.empty': { en: 'No weeks recorded yet.', ta: 'வாரங்கள் இன்னும் பதிவு செய்யப்படவில்லை.' },
+  'history.opening_balance': { en: 'Opening', ta: 'தொடக்கம்' },
+  'history.closing_balance': { en: 'Closing', ta: 'முடிவு' },
+  'history.back_to_weeks': { en: 'Back to all weeks', ta: 'அனைத்து வாரங்களுக்கு திரும்பு' },
   'summary.not_yet_available': {
     en: 'The weekly summary is not available until the week is closed',
     ta: 'வாரம் மூடப்படும் வரை வார சுருக்கம் கிடைக்காது', // TA: REVIEW REQUIRED
@@ -678,6 +690,10 @@ export const translations = {
 
   // GROUP 28 — Registration screens
   'registration.customer.title': { en: 'Customer Registration', ta: 'வாடிக்கையாளர் பதிவு' },
+  'registration.wallet_topup.title': { en: 'Wallet Top-Up', ta: 'வாலெட் டாப்-அப்' },
+  'registration.tab.customers': { en: 'Customers', ta: 'வாடிக்கையாளர்கள்' },
+  'registration.tab.wallet_topup': { en: 'Wallet Top-Up', ta: 'வாலெட் டாப்-அப்' },
+  'registration.customer.topup_button': { en: 'Top up', ta: 'டாப்-அப்' },
   'registration.customer.add_button': { en: 'Add Customer', ta: 'வாடிக்கையாளரை சேர்' },
   'registration.customer.name_label': { en: 'Name', ta: 'பெயர்' },
   'registration.customer.phone_label': { en: 'Phone', ta: 'தொலைபேசி' },
@@ -785,6 +801,7 @@ export const translations = {
   'dashboard.stat.walkin_total': { en: 'Walk-in Total', ta: 'நேரடி விற்பனை மொத்தம்' }, // TA: REVIEW REQUIRED
   'dashboard.stat.price_diffs_unresolved': { en: 'Unresolved Price Diffs', ta: 'தீர்க்கப்படாத விலை வேறுபாடுகள்' }, // TA: REVIEW REQUIRED
   'dashboard.stat.farmer_payments_unpaid': { en: 'Unpaid Farmer Payments', ta: 'செலுத்தப்படாத விவசாயி பணம்' }, // TA: REVIEW REQUIRED
+  'dashboard.stat.local_farmers_unpaid': { en: 'Unpaid Local Farmers', ta: 'செலுத்தப்படாத உள்ளூர் விவசாயிகள்' }, // TA: REVIEW REQUIRED
 
   // Dashboard Zone 3 — CTA labels
   'dashboard.cta.edit_produce_list': { en: 'Edit Produce List', ta: 'விளைவு பட்டியலை திருத்து' }, // TA: REVIEW REQUIRED

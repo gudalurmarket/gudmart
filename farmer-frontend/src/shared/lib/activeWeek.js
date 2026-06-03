@@ -48,6 +48,19 @@ export function pickActiveWeek (weeks) {
 }
 
 /**
+ * Pick the non-closed week in the given state closest to today's market date.
+ *
+ * @param {Array<{ state?: string, marketDate?: string, market_date?: string }>} weeks
+ * @param {string} state
+ * @returns {object | null}
+ */
+export function pickWeekByState (weeks, state) {
+  const matches = (weeks ?? []).filter((w) => w.state === state)
+  if (matches.length === 0) return null
+  return pickActiveWeek(matches)
+}
+
+/**
  * @param {string | Date | undefined} isoOrDate
  * @param {'en' | 'ta'} lang
  * @returns {string}

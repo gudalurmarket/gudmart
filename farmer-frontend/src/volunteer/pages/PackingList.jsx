@@ -3,7 +3,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { WEEK_STATES } from '../../shared/lib/constants.js'
 import { apiGet, apiPatch } from '../../shared/lib/api.js'
-import useWeekState from '../../shared/hooks/useWeekState.js'
+import useVolunteerWeek from '../hooks/useVolunteerWeek.js'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 
@@ -28,6 +28,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
             <div className="flex flex-col gap-1.5 mb-3">
               {order.lineItems.map((item) => {
                 const name = item.nameEn
+                const deliveredQty = item.deliveredQty ?? item.allocatedQty
                 const hasShortfall = item.allocatedQty < item.orderedQty
                 const hasRank = item.fcfsRank !== null && item.fcfsRank !== undefined
 
@@ -58,7 +59,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
                           </span>
                         </>
                       ) : (
-                        <span>{item.allocatedQty} {item.unit}</span>
+                        <span>{deliveredQty} {item.unit}</span>
                       )}
                     </div>
                   </div>
@@ -118,7 +119,12 @@ function FilterToggle ({ showUnpackedOnly, onChange }) {
 
 export default function PackingList () {
   const { t } = useLang()
-  const { week, state: weekState, loading: weekLoading } = useWeekState()
+  const {
+    weekId,
+    state: weekState,
+    loading: weekLoading,
+    errorKey: weekErrorKey,
+  } = useVolunteerWeek(WEEK_STATES.DELIVERY)
 
   const [customers, setCustomers] = useState([])
   const [packingId, setPackingId] = useState(null)
@@ -126,8 +132,6 @@ export default function PackingList () {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
   const [showUnpackedOnly, setShowUnpackedOnly] = useState(false)
-
-  const weekId = week?.weekId
 
   const fetchPackingList = useCallback(async () => {
     if (!weekId) return
@@ -144,10 +148,12 @@ export default function PackingList () {
   }, [weekId, t])
 
   useEffect(() => {
-    if (weekState === WEEK_STATES.DELIVERY && weekId) {
+    if (weekId) {
       fetchPackingList()
+    } else {
+      setCustomers([])
     }
-  }, [weekState, weekId, fetchPackingList])
+  }, [weekId, fetchPackingList])
 
   const handleMarkPacked = useCallback(async (orderId) => {
     if (packingId !== null) return
@@ -191,8 +197,18 @@ export default function PackingList () {
     )
   }
 
-  // ── State gate ──────────────────────────────────────────────────────────────
-  if (weekState !== WEEK_STATES.DELIVERY) {
+  if (weekErrorKey) {
+    return (
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
+        <div className="mb-4">
+          <StateMachineBadge state={weekState} />
+        </div>
+        <p className="text-center text-[--color-error] mt-8">{t(weekErrorKey)}</p>
+      </div>
+    )
+  }
+
+  if (!weekId) {
     return (
       <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
@@ -266,8 +282,7 @@ export default function PackingList () {
           <p className="text-[--color-text-secondary] text-center">{t('packing.all_packed')}</p>
         </div>
       ) : filteredCustomers.length === 0 ? (
-        /* No orders at all */
-        <p className="text-center text-[--color-text-secondary] mt-8">{t('empty.packing_list')}</p>
+        <p className="text-center text-[--color-text-secondary] mt-8">{t('empty.no_items')}</p>
       ) : (
         /* Customer order cards */
         <div className="flex flex-col gap-3">

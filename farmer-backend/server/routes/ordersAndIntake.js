@@ -773,6 +773,94 @@ async function ordersAndIntakeRoutes (fastify) {
     return result
   })
 
+  fastify.post('/weeks/:weekId/orders/:orderId/confirm', {
+    config: { action: 'confirm_order' },
+    schema: {
+      params: {
+        type: 'object',
+        required: ['weekId', 'orderId'],
+        properties: {
+          weekId: { type: 'string' },
+          orderId: { type: 'string' }
+        }
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {}
+      }
+    }
+  }, async (request) => {
+    const { weekId, orderId } = request.params
+    const operatorId = request.user.uid
+
+    const order = await CustomerOrder.findOne({
+      order_id: orderId,
+      week_id: weekId
+    })
+    if (!order) {
+      throw new OrderNotFoundError(`Order not found: ${orderId}`, { orderId, weekId })
+    }
+
+    if (order.status !== 'pending_payment') {
+      throw new AppError(
+        'ACTION_NOT_PERMITTED_IN_STATE',
+        409,
+        'Only pending payment orders can be confirmed',
+        { orderId, status: order.status }
+      )
+    }
+
+    const orderValue = order.order_value
+    const debitOutcome = await attemptOrderDebit({
+      customerId: order.customer_id,
+      orderValuePaise: orderValue,
+      orderId,
+      weekId,
+      operatorId
+    })
+
+    if (!debitOutcome.confirmed) {
+      throw new WalletInsufficientError(
+        'Wallet balance is insufficient to confirm this order',
+        {
+          orderId,
+          shortfallAmount: debitOutcome.shortfallAmount,
+          orderValue
+        }
+      )
+    }
+
+    await CustomerOrder.updateOne(
+      { order_id: orderId, week_id: weekId },
+      {
+        $set: {
+          status: 'confirmed',
+          wallet_debited: debitOutcome.walletDebited,
+          wallet_txn_id: debitOutcome.debitTxnId,
+          balance_due: 0,
+          pending_reason: null
+        }
+      }
+    )
+
+    const customer = await Customer.findOne({ customer_id: order.customer_id })
+      .select('customer_id name phone wallet_balance')
+      .lean()
+
+    const orderPlain = typeof order.toObject === 'function' ? order.toObject() : order
+    return toOrderResponse(
+      {
+        ...orderPlain,
+        status: 'confirmed',
+        wallet_debited: debitOutcome.walletDebited,
+        wallet_txn_id: debitOutcome.debitTxnId,
+        balance_due: 0
+      },
+      customer
+    )
+  })
+
   fastify.delete('/weeks/:weekId/orders/:orderId', {
     config: { action: 'cancel_order' },
     schema: {

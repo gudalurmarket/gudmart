@@ -1,0 +1,32 @@
+[
+  {
+    "farmer_id": "00000000-0000-4000-8000-000000000011",
+    "name": "Test Farmer Outstation 1",
+    "phone": "+919895129085",
+    "location": "Gudalur",
+    "farmer_type": "outstation",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "farmer_id": "00000000-0000-4000-8000-000000000012",
+    "name": "Test Farmer Outstation 2",
+    "phone": "+918921025497",
+    "location": "Pandalur",
+    "farmer_type": "outstation",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "farmer_id": "00000000-0000-4000-8000-000000000013",
+    "name": "Test Farmer Local 1",
+    "phone": "+919447000344",
+    "location": "Ooty",
+    "farmer_type": "local",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  }
+]

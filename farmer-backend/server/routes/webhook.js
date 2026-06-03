@@ -46,6 +46,16 @@ function normalizeMediaType (whatsappType) {
 }
 
 /**
+ * Meta sends MSISDN without a leading +; customers.phone is stored as E.164 (+…).
+ * @param {string} phone
+ * @returns {string}
+ */
+function normalizeSenderPhone (phone) {
+  if (typeof phone !== 'string' || phone.length === 0) return phone
+  return phone.startsWith('+') ? phone : `+${phone}`
+}
+
+/**
  * @param {Array<{ confidence: string }>} parsedItems
  * @returns {'clean' | 'partial' | 'manual_required'}
  */
@@ -126,7 +136,7 @@ async function processWebhookPayload (log, synonymCache, payload) {
 
   const msg = messages[0]
   const message_id = msg.id
-  const sender_phone = msg.from
+  const sender_phone = normalizeSenderPhone(msg.from)
   const body = msg.text?.body ?? null
   const media_type = normalizeMediaType(msg.type)
   const fcfs_timestamp = new Date(parseInt(msg.timestamp, 10) * 1000)

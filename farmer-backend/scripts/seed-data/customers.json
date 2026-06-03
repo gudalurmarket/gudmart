@@ -1,0 +1,29 @@
+[
+  {
+    "customer_id": "00000000-0000-4000-8000-000000000001",
+    "name": "Test Customer A",
+    "phone": "+918921025497",
+    "active": true,
+    "wallet_balance": 15000,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "customer_id": "00000000-0000-4000-8000-000000000002",
+    "name": "Test Customer B",
+    "phone": "+919447000344",
+    "active": true,
+    "wallet_balance": 0,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "customer_id": "00000000-0000-4000-8000-000000000003",
+    "name": "Test Customer C",
+    "phone": "+919895129085",
+    "active": true,
+    "wallet_balance": 5000,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  }
+]

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertCircle, ArrowRight, CalendarPlus, ChevronRight } from 'lucide-react'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
@@ -211,14 +211,21 @@ async function loadStateSpecificStats (weekId, state) {
   }
 
   if (state === WEEK_STATES.RECONCILIATION) {
-    const [reconResult, paymentsResult] = await Promise.allSettled([
+    const [reconResult, paymentsResult, localPaymentsResult] = await Promise.allSettled([
       apiGet(`/api/v1/weeks/${weekId}/reconciliation`),
       apiGet(`/api/v1/weeks/${weekId}/farmerpayments`),
+      apiGet(`/api/v1/weeks/${weekId}/localfarmer-payments`),
     ])
     const reconData = reconResult.status === 'fulfilled' ? reconResult.value : null
     const paymentsData = paymentsResult.status === 'fulfilled' ? paymentsResult.value : null
+    const localPaymentsData = localPaymentsResult.status === 'fulfilled'
+      ? localPaymentsResult.value
+      : null
     const priceDiffs = reconData ? (reconData.priceDifferences ?? []) : null
     const payments = paymentsData ? (paymentsData.payments ?? []) : null
+    const localFarmerPayments = localPaymentsData
+      ? (localPaymentsData.localFarmerPayments ?? [])
+      : null
     return {
       priceDiffsUnresolved: priceDiffs !== null
         ? priceDiffs.filter(d => !d.differenceConfirmed).length
@@ -226,6 +233,10 @@ async function loadStateSpecificStats (weekId, state) {
       farmerPaymentsUnpaid: payments !== null
         ? payments.filter(p => p.status === 'unpaid').length
         : null,
+      localFarmersUnpaid: localFarmerPayments !== null
+        ? localFarmerPayments.filter(p => !p.paymentComplete).length
+        : null,
+      localFarmersTotal: localFarmerPayments !== null ? localFarmerPayments.length : null,
     }
   }
 
@@ -278,11 +289,19 @@ function buildStatCards (state, stats, t) {
           value: stats.walkinTotal != null ? formatINR(stats.walkinTotal) : '--',
         },
       ]
-    case WEEK_STATES.RECONCILIATION:
+    case WEEK_STATES.RECONCILIATION: {
+      const localValue =
+        stats.localFarmersUnpaid != null
+          ? stats.localFarmersTotal > 0
+            ? `${stats.localFarmersUnpaid}/${stats.localFarmersTotal}`
+            : String(stats.localFarmersUnpaid)
+          : '--'
       return [
         { labelKey: 'dashboard.stat.price_diffs_unresolved', value: fmt(stats.priceDiffsUnresolved) },
         { labelKey: 'dashboard.stat.farmer_payments_unpaid', value: fmt(stats.farmerPaymentsUnpaid) },
+        { labelKey: 'dashboard.stat.local_farmers_unpaid', value: localValue },
       ]
+    }
     default:
       return []
   }
@@ -403,6 +422,8 @@ function BlockerList ({ blockers, t, navigate }) {
 export default function Dashboard () {
   const navigate = useNavigate()
   const { lang, t } = useLang()
+  const [searchParams] = useSearchParams()
+  const paramWeekId = searchParams.get('weekId')
 
   const [loading, setLoading] = useState(true)
   const [statsLoading, setStatsLoading] = useState(false)
@@ -425,7 +446,14 @@ export default function Dashboard () {
     try {
       const weeksData = await apiGet('/api/v1/weeks')
       const weeks = weeksData.weeks ?? []
-      const activeWeek = pickActiveWeek(weeks)
+      let activeWeek = pickActiveWeek(weeks)
+
+      if (paramWeekId) {
+        const selected = weeks.find((w) => resolveWeekId(w) === paramWeekId)
+        if (selected && selected.state !== WEEK_STATES.CLOSED) {
+          activeWeek = selected
+        }
+      }
 
       if (!activeWeek) {
         setWeek(null)
@@ -458,7 +486,7 @@ export default function Dashboard () {
       setLoading(false)
       setStatsLoading(false)
     }
-  }, [])
+  }, [paramWeekId])
 
   const handleSSEMessage = useCallback(() => {
     loadDashboard(true)

@@ -1,0 +1,29 @@
+[
+  {
+    "product_id": "00000000-0000-4000-8000-000000000021",
+    "name_en": "Tomato",
+    "name_ta": "தக்காளி",
+    "default_unit": "kg",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "product_id": "00000000-0000-4000-8000-000000000022",
+    "name_en": "Coconut",
+    "name_ta": "தேங்காய்",
+    "default_unit": "piece",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  },
+  {
+    "product_id": "00000000-0000-4000-8000-000000000023",
+    "name_en": "Spinach",
+    "name_ta": "பசலைக்கீரை",
+    "default_unit": "bunch",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "created_by": "system"
+  }
+]

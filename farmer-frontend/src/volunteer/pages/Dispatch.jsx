@@ -4,7 +4,7 @@ import { useLang } from '../../shared/lib/LangContext.jsx'
 import { WEEK_STATES } from '../../shared/lib/constants.js'
 import { apiGet, apiPatch } from '../../shared/lib/api.js'
 import { formatINR } from '../../shared/lib/paise.js'
-import useWeekState from '../../shared/hooks/useWeekState.js'
+import useVolunteerWeek from '../hooks/useVolunteerWeek.js'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 
@@ -132,7 +132,12 @@ function SectionHeader ({ label }) {
 
 export default function Dispatch () {
   const { t } = useLang()
-  const { week, state: weekState, loading: weekLoading } = useWeekState()
+  const {
+    weekId,
+    state: weekState,
+    loading: weekLoading,
+    errorKey: weekErrorKey,
+  } = useVolunteerWeek(WEEK_STATES.MARKET_DAY)
 
   const [orders, setOrders] = useState([])
   const [dispatchingId, setDispatchingId] = useState(null)
@@ -140,8 +145,6 @@ export default function Dispatch () {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-
-  const weekId = week?.weekId
 
   const fetchDispatchList = useCallback(async () => {
     if (!weekId) return
@@ -158,10 +161,12 @@ export default function Dispatch () {
   }, [weekId, t])
 
   useEffect(() => {
-    if (weekState === WEEK_STATES.MARKET_DAY && weekId) {
+    if (weekId) {
       fetchDispatchList()
+    } else {
+      setOrders([])
     }
-  }, [weekState, weekId, fetchDispatchList])
+  }, [weekId, fetchDispatchList])
 
   const handleMarkDispatched = useCallback(
     async (orderId) => {
@@ -212,8 +217,18 @@ export default function Dispatch () {
     )
   }
 
-  // ── State gate ───────────────────────────────────────────────────────────────
-  if (weekState !== WEEK_STATES.MARKET_DAY) {
+  if (weekErrorKey) {
+    return (
+      <div className="min-h-full bg-[--color-background] px-4 py-6">
+        <div className="mb-4">
+          <StateMachineBadge state={weekState} />
+        </div>
+        <p className="text-center text-[--color-error] mt-8">{t(weekErrorKey)}</p>
+      </div>
+    )
+  }
+
+  if (!weekId) {
     return (
       <div className="min-h-full bg-[--color-background] px-4 py-6">
         <div className="mb-4">
@@ -287,7 +302,7 @@ export default function Dispatch () {
       {/* Empty state — no orders at all */}
       {orders.length === 0 && (
         <p className="text-center text-[--color-text-secondary] mt-8">
-          {t('empty.dispatch_list')}
+          {t('empty.no_items')}
         </p>
       )}
 
