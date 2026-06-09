@@ -22,6 +22,15 @@ async function sseRoutes (fastify, _opts) {
       throw new AppError('FORBIDDEN', 403, 'Operator role required for intake-queue SSE')
     }
 
+    if (connections.size >= 10) {
+      return reply.code(503).send({
+        code: 'SSE_CAPACITY_REACHED',
+        httpStatus: 503,
+        message: 'Maximum concurrent SSE connections reached. Try again shortly.',
+        details: {}
+      })
+    }
+
     const connectionId = crypto.randomUUID()
 
     reply.hijack()
@@ -33,6 +42,11 @@ async function sseRoutes (fastify, _opts) {
     })
 
     connections.set(connectionId, reply)
+
+    const lifetimeTimer = setTimeout(() => {
+      connections.delete(connectionId)
+      reply.raw.end()
+    }, 4 * 60 * 60 * 1000)
 
     writeSseEvent(reply, 'connection-established', {
       connectedAt: new Date().toISOString()
@@ -56,6 +70,7 @@ async function sseRoutes (fastify, _opts) {
     request.raw.on('close', () => {
       connections.delete(connectionId)
       clearInterval(heartbeatInterval)
+      clearTimeout(lifetimeTimer)
     })
   })
 }
