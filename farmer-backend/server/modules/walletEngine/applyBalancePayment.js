@@ -3,6 +3,7 @@
 const {
   WalletValidationError
 } = require('../../lib/errors')
+const CustomerOrder = require('../../models/CustomerOrder')
 const {
   assertPositive,
   assertString,
@@ -60,6 +61,22 @@ async function applyBalancePayment ({
         })
       })
     })
+
+    const order = await CustomerOrder.findOne({
+      order_id: orderId,
+      week_id: weekId
+    })
+    if (!order) {
+      throw new WalletValidationError(
+        `applyBalancePayment order not found: ${orderId}`,
+        { orderId, weekId }
+      )
+    }
+    const remainingDue = Math.max(0, order.balance_due - amount)
+    await CustomerOrder.updateOne(
+      { order_id: orderId, week_id: weekId },
+      { $set: { balance_due: remainingDue, balance_cleared: remainingDue === 0 } }
+    )
 
     return { txnId: txn.txn_id, newBalance }
   } catch (error) {

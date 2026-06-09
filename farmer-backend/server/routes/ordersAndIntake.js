@@ -618,6 +618,14 @@ async function ordersAndIntakeRoutes (fastify) {
     }
 
     if (balancePayment != null) {
+      if (order.balance_cleared === true) {
+        throw new AppError(
+          'BALANCE_ALREADY_CLEARED',
+          409,
+          'Balance payment has already been recorded for this order.'
+        )
+      }
+
       await WalletEngine.applyBalancePayment({
         idempotencyKey: randomUUID(),
         customerId: order.customer_id,
@@ -627,11 +635,6 @@ async function ordersAndIntakeRoutes (fastify) {
         weekId,
         createdBy: operatorId
       })
-
-      const remainingDue = Math.max(0, order.balance_due - balancePayment.amount)
-      order.balance_due = remainingDue
-      order.balance_cleared = remainingDue === 0
-      await order.save()
 
       return {
         ok: true,
