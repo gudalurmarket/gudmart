@@ -132,6 +132,22 @@ describe('parseMessage — unknown tokens / manual required', () => {
     expect(results[0].productId).toBeNull()
     expect(results[0].confidence).toBe('manual_required')
   })
+
+  it('typo with no synonym match → manual_required with similarity suggestion', () => {
+    const results = parse('tomatoe 2 kg')
+    expect(results[0].productId).toBeNull()
+    expect(results[0].confidence).toBe('manual_required')
+    expect(results[0].suggestedProductId).toBe('prod-tomato')
+    expect(results[0].suggestedProductName).toBe('Tomato')
+    expect(results[0].similarityScore).toBeGreaterThan(0)
+  })
+
+  it('synonym table match → suggestion fields null', () => {
+    const results = parse('tomato 2 kg')
+    expect(results[0].productId).toBe('prod-tomato')
+    expect(results[0].suggestedProductId).toBeNull()
+    expect(results[0].similarityScore).toBeNull()
+  })
 })
 
 describe('parseMessage — Tamil / mixed language tokens', () => {

@@ -30,8 +30,32 @@ export default defineConfig({
       registerType: 'autoUpdate',
       scope: '/volunteer/',
       base: '/',
-      includeAssets: [],
-      manifest: false,
+      manifestFilename: 'manifest.json',
+      includeAssets: ['pwa-192.svg', 'pwa-512.svg'],
+      manifest: {
+        name: 'Gudmart Volunteer',
+        short_name: 'Gudmart',
+        description: 'Volunteer delivery, packing, and dispatch app',
+        theme_color: '#3B6E2F',
+        background_color: '#ffffff',
+        display: 'standalone',
+        scope: '/volunteer/',
+        start_url: '/volunteer/delivery',
+        icons: [
+          {
+            src: '/pwa-192.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-512.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any'
+          }
+        ]
+      },
       workbox: {
         globPatterns: [],
         navigateFallback: null,

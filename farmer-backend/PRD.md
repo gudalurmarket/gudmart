@@ -252,6 +252,7 @@ The product catalogue is a shared master list of all items that can appear on an
 * Operator can edit any item's name or default unit type at any time.
 * Operator can deactivate an item (soft delete). Deactivated items do not appear in produce list entry or order screens but historical data is preserved.
 * When building a weekly produce list, the operator can select from the catalogue or add a new item inline. Inline additions are saved to the catalogue automatically.
+* When the operator enters a product name (English or Tamil), the system checks the existing catalogue for similar names using the Levenshtein similarity function. If a similar item is found (similarity score ≥ 0.6), the system displays an inline warning: 'Similar item already exists: [name]. Add anyway?' The operator can confirm to proceed or cancel to revise the name. This check is advisory — it does not block saving.
 
 #### 4.1.2 Farmer Registration
 
@@ -388,7 +389,7 @@ This is the primary screen for the B-Assisted order intake flow. It displays all
 Accessible from the customer list or from within any order detail.
 
 * Displays: customer name, current wallet balance, full ledger history in reverse chronological order.
-* Each ledger entry shows: date and time, entry type (Top-up / Order Debit / Order Debit Reversal / Price Difference Credit / Price Difference Debit / Customer Due / Balance Payment / Manual Adjustment), amount, payment channel (Cash / UPI / System), week reference, running balance after this entry.
+* Each ledger entry shows: date and time, entry type (Top-up / Order Debit / Order Debit Reversal / Price Difference Credit / Price Difference Debit / Customer Due / Balance Payment / Manual Adjustment), product name (for order debit and price difference entries), amount, payment channel (Cash / UPI / System), week reference, running balance after this entry.
 
 #### 4.5.2 Top-Up Entry
 
@@ -402,9 +403,9 @@ Accessible from the customer list or from within any order detail.
 
 #### 4.6.1 Aggregated and Buffer View
 
-* Displays per item: item name, unit type, total confirmed preorder quantity, operator-set buffer percentage, calculated buffer quantity (preorder qty × buffer%), calculated outgoing quantity (preorder qty + buffer qty).
-* Operator sets buffer percentage per item. Entered as a percentage (0–100%). Typical range 10–30%. No system-enforced minimum or maximum.
-* Buffer is per item, not per farmer. A single buffer percentage applies to the total outgoing quantity for that item regardless of how many farmers supply it.
+* Displays per item: item name, unit type, total confirmed preorder quantity, operator-set buffer quantity, calculated outgoing quantity (preorder qty + buffer qty).
+* Operator sets buffer quantity per item. Entered as an absolute quantity in the same unit as the product (e.g. 2 kg, 5 pieces). No system-enforced minimum or maximum.
+* Buffer is per item, not per farmer. A single buffer quantity applies to the total outgoing quantity for that item regardless of how many farmers supply it.
 * System recalculates outgoing quantity live as the operator adjusts each buffer value.
 
 #### 4.6.2 Farmer Assignment View
@@ -417,7 +418,8 @@ Accessible from the customer list or from within any order detail.
 #### 4.6.3 Per-Farmer Order Export
 
 * System generates a per-farmer order summary: farmer name, each assigned item with preorder qty, buffer qty, and outgoing qty.
-* Operator can copy this as a formatted text string in Tamil or English, ready to paste into a WhatsApp message.
+* Operator can copy this as a formatted text string in Tamil or English, ready to paste into a WhatsApp message. Product names are shown in the language of the selected copy — English names (name_en) for the English copy, Tamil names (name_ta) for the Tamil copy, falling back to name_en where name_ta is not set.
+* The Tamil and English copy buttons are displayed simultaneously. The operator does not need to change the UI language to access both. Product names use name_ta in the Tamil copy and name_en in the English copy; name_en is used as fallback if name_ta is not set for an item.
 * The system does not send WhatsApp messages. The operator copies and pastes.
 
 ### 4.7 Delivery Management
@@ -636,7 +638,11 @@ Step 3 — Extract unit. Scan for a unit token in the segment. Apply synonym nor
 
 Step 4 — Extract product name. The remaining tokens (after quantity and unit removed) form the raw product text. Apply the synonym and variant table to map raw text to a product in the current week's produce list. Match is case-insensitive. If a match is found, record the product ID. If no match is found, record the raw text as unmatched and flag for operator selection.
 
-Step 5 — Assemble output. Return an array of parsed line items. Each item has: matched product ID (null if unmatched), raw product text, quantity (numeric, null if not found), canonical unit (null if not found), confidence flag (Matched / Partial / Unmatched).
+Step 4b — Similarity fallback. If Step 4 produces no synonym match, the system runs a Levenshtein similarity pass against all name_en and name_ta values in the current week's produce list. The best-matching item is returned as a suggestion alongside the unmatched segment. Confidence remains manual_required — the suggestion is advisory only. The operator sees the suggestion in the intake queue and can accept it with one tap or ignore it and select manually. The similarity function is deterministic JavaScript with no external dependencies.
+
+Step 5 — Assemble output. Return an array of parsed line items. Each item has: matched product ID (null if unmatched), raw product text, quantity (numeric, null if not found), canonical unit (null if not found), confidence flag (Matched / Partial / Unmatched), suggestedProductId (null if no similarity candidate), suggestedProductName (null if no similarity candidate), similarityScore (null if no similarity candidate).
+
+Note: suggestedProductId, suggestedProductName, and similarityScore are computed at read time from the current produce list and are not stored in the inbound_messages.parsed_items array in MongoDB.
 
 **"Same as last week" handling:** Any segment containing "same as last week," "same," "usual," or recognisable Tamil equivalents is not parseable by a rule-based system. The entire message is flagged as Manual Required and the operator enters the order manually.
 
@@ -1059,10 +1065,10 @@ For the first market week on the new system, the operator manually enters the op
 |assignment\_id|UUID|Primary key|
 |week\_id|UUID|FK to MarketWeek|
 |farmer\_id|UUID|FK to Farmer (outstation only)|
-|product\_id|UUID|FK to ProductCatalogue|
+|product\_id|UUID|FK to ProductCatalogue. API responses resolve this to name\_en and name\_ta — product\_id is never displayed raw in the UI.|
 |preorder\_qty|Decimal|Total confirmed customer preorder qty for this item|
-|buffer\_pct|Decimal|Buffer percentage set by operator|
-|buffer\_qty|Decimal|Calculated: preorder\_qty x buffer\_pct|
+|buffer\_pct|Decimal|Deprecated. Nullable. Legacy records retain original value; new assignments set this to null.|
+|buffer\_qty|Decimal|Operator-entered absolute buffer quantity in the product's unit. Direct input — not calculated from buffer\_pct.|
 |outgoing\_qty|Decimal|Calculated: preorder\_qty + buffer\_qty|
 |delivered\_qty|Decimal|Actual quantity received. Set in Delivery state|
 

@@ -1,12 +1,21 @@
+import { useRef } from 'react'
 import { LineItemRowIcon, Plus, X } from '../../shared/components/AppIcons.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { UNIT_TYPES } from '../../shared/lib/constants.js'
 import { formatINR } from '../../shared/lib/paise.js'
 
+function interpolate (template, vars) {
+  return Object.entries(vars).reduce(
+    (str, [key, value]) => str.replaceAll(`{{${key}}}`, String(value)),
+    template,
+  )
+}
+
 const UNIT_OPTIONS = Object.values(UNIT_TYPES)
 
 export default function LineItemEditor ({ lineItems, produceList, onChange }) {
   const { lang, t } = useLang()
+  const productSelectRefs = useRef({})
 
   const updateLine = (index, patch) => {
     const next = lineItems.map((row, i) => (i === index ? { ...row, ...patch } : row))
@@ -42,18 +51,87 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
         <div className="space-y-2">
           {lineItems.map((row, index) => {
             const unmatched = !row.productId
+            const showSuggestion =
+              unmatched &&
+              row.suggestedProductId != null &&
+              row.rawProductText
+            const suggestedDisplayName =
+              lang === 'ta' && row.suggestedProductNameTa
+                ? row.suggestedProductNameTa
+                : row.suggestedProductName
+
+            const acceptSuggestion = () => {
+              const produce = produceList.find(
+                (p) => p.productId === row.suggestedProductId,
+              )
+              updateLine(index, {
+                productId: row.suggestedProductId,
+                rawProductText: null,
+                unit: produce?.unit ?? row.unit,
+                suggestedProductId: null,
+                suggestedProductName: null,
+                suggestedProductNameTa: null,
+                similarityScore: null,
+              })
+            }
+
+            const focusProductSelect = () => {
+              const select = productSelectRefs.current[row.localId]
+              if (select) {
+                select.focus()
+                if (typeof select.showPicker === 'function') {
+                  select.showPicker()
+                }
+              }
+            }
 
             return (
               <div
                 key={row.localId}
-                className="flex flex-wrap items-end gap-2 rounded-md border border-[--color-border] bg-[--color-background] p-2"
+                className="rounded-md border border-[--color-border] bg-[--color-background] p-2"
               >
+                {unmatched && row.rawProductText && (
+                  <p className="mb-2 text-xs text-[--color-text-secondary]">
+                    {interpolate(t('intake.suggestion.raw_text'), {
+                      text: row.rawProductText,
+                    })}
+                  </p>
+                )}
+
+                {showSuggestion && (
+                  <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[--color-primary]/30 bg-[--color-primary]/5 px-3 py-2">
+                    <span className="text-sm text-[--color-text-primary]">
+                      {interpolate(t('intake.suggestion.did_you_mean'), {
+                        name: suggestedDisplayName ?? row.suggestedProductName,
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={acceptSuggestion}
+                      className="min-h-[44px] rounded-md bg-[--color-primary] px-3 py-1.5 text-sm font-medium text-[--color-text-inverse] hover:bg-[--color-primary-dark]"
+                    >
+                      {t('intake.suggestion.accept')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={focusProductSelect}
+                      className="min-h-[44px] rounded-md border border-[--color-border] px-3 py-1.5 text-sm font-medium text-[--color-text-secondary] hover:bg-[--color-surface-raised]"
+                    >
+                      {t('intake.suggestion.select_manually')}
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-end gap-2">
                 <LineItemRowIcon unmatched={unmatched} />
                 <div className="min-w-[140px] flex-1">
                   <label className="mb-1 block text-xs text-[--color-text-secondary]">
                     {t('field.product')}
                   </label>
                   <select
+                    ref={(el) => {
+                      productSelectRefs.current[row.localId] = el
+                    }}
                     value={row.productId ?? ''}
                     onChange={(e) => {
                       const productId = e.target.value || null
@@ -62,6 +140,10 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                         productId,
                         rawProductText: null,
                         unit: produce?.unit ?? row.unit,
+                        suggestedProductId: null,
+                        suggestedProductName: null,
+                        suggestedProductNameTa: null,
+                        similarityScore: null,
                       })
                     }}
                     className={`w-full min-h-[44px] rounded-md border px-2 py-2 text-sm text-[--color-text-primary] focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary] ${
@@ -121,6 +203,7 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                 >
                   <X size={16} strokeWidth={1.5} aria-hidden="true" />
                 </button>
+                </div>
               </div>
             )
           })}
@@ -158,6 +241,10 @@ export function parsedItemsToEditorRows (parsedItems = []) {
     rawProductText: item.rawProductText ?? item.rawText ?? null,
     orderedQty: item.quantity != null ? String(item.quantity) : '',
     unit: item.unit ?? '',
+    suggestedProductId: item.suggestedProductId ?? null,
+    suggestedProductName: item.suggestedProductName ?? null,
+    suggestedProductNameTa: item.suggestedProductNameTa ?? null,
+    similarityScore: item.similarityScore ?? null,
   }))
 }
 

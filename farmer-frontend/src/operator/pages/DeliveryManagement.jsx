@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Copy, Loader2, Package, Plus, Trash2 } from 'lucide-react'
+import { Copy, Loader2, Package, Plus, SearchX, Trash2 } from 'lucide-react'
 import { subscribeActiveWeekChanged } from '../../shared/hooks/useWeekState.js'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
@@ -9,6 +9,7 @@ import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { UNIT_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
 import { formatINR } from '../../shared/lib/paise.js'
+import { translations } from '../../shared/lib/translations.js'
 
 const TOAST_DISMISS_MS = 4000
 const FCFS_TOAST_DISMISS_MS = 6000
@@ -32,12 +33,28 @@ function roundQty (value, decimals = 2) {
   return Math.round(value * factor) / factor
 }
 
-function calcBufferQty (totalOrderedQty, bufferPct) {
-  return roundQty((totalOrderedQty * bufferPct) / 100, 2)
+function isIntegerUnit (unit) {
+  return unit === UNIT_TYPES.PIECE || unit === UNIT_TYPES.BUNCH
 }
 
-function calcOutgoingQty (totalOrderedQty, bufferQty) {
-  return roundQty(totalOrderedQty + bufferQty, 2)
+function qtyInputStep (unit) {
+  return isIntegerUnit(unit) ? 1 : 0.01
+}
+
+/**
+ * @param {string} raw
+ * @param {string} unit
+ * @returns {number|null}
+ */
+function parseQtyForUnit (raw, unit) {
+  if (raw === '') return null
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0) return null
+  if (isIntegerUnit(unit)) {
+    if (!Number.isInteger(n)) return null
+    return n
+  }
+  return roundQty(n, 2)
 }
 
 function newRowKey () {
@@ -48,6 +65,92 @@ function newAssignmentId () {
   return crypto.randomUUID()
 }
 
+function localizedProductName (item, lang) {
+  if (lang === 'ta' && item.nameTa) return item.nameTa
+  return item.nameEn ?? item.productName ?? item.productId ?? ''
+}
+
+function tForLang (key, lang) {
+  return translations[key]?.[lang] ?? key
+}
+
+function applyTemplate (template, vars) {
+  return Object.entries(vars).reduce(
+    (str, [varKey, value]) => str.replaceAll(`{{${varKey}}}`, String(value)),
+    template,
+  )
+}
+
+function unitLabelForLang (unit, lang) {
+  const key = UNIT_TRANSLATION_KEYS[unit]
+  return key ? tForLang(key, lang) : unit
+}
+
+const PRODUCT_DOT_PALETTE = [
+  '#e05c5c',
+  '#e08835',
+  '#c0aa1a',
+  '#38a85e',
+  '#3880b5',
+  '#7e51c5',
+  '#b54c9c',
+  '#3da8a0',
+]
+
+function farmerInitials (name) {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function toLocalMarketDate (marketDate) {
+  if (marketDate == null || marketDate === '') return null
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(marketDate))
+  if (dateOnly) {
+    const [, y, m, d] = dateOnly
+    return new Date(Number(y), Number(m) - 1, Number(d))
+  }
+  const parsed = new Date(marketDate)
+  if (Number.isNaN(parsed.getTime())) return null
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+}
+
+function formatWeekDateRange (marketDate, lang) {
+  const end = toLocalMarketDate(marketDate)
+  if (!end) return ''
+  const start = new Date(end)
+  start.setDate(start.getDate() - 6)
+  return `${formatMarketDate(start, lang)} → ${formatMarketDate(end, lang)}`
+}
+
+function productDotColor (productId) {
+  let hash = 0
+  for (let i = 0; i < productId.length; i++) {
+    hash += productId.charCodeAt(i)
+  }
+  return PRODUCT_DOT_PALETTE[hash % PRODUCT_DOT_PALETTE.length]
+}
+
+function buildFarmerCopyText (group, lang, marketDate) {
+  const formattedDate = formatWeekDateRange(marketDate, lang)
+  const headerTpl = tForLang('template.farmer_order.header', lang)
+  const header = applyTemplate(headerTpl, { farmerName: group.farmerName, marketDate: formattedDate })
+  const itemLines = group.items.map((item) => {
+    const name = localizedProductName(item, lang)
+    const unit = unitLabelForLang(item.unit, lang)
+    const lineTpl = tForLang('template.farmer_order.item_line', lang)
+    return applyTemplate(lineTpl, {
+      productName: name,
+      outgoingQty: item.outgoingQty ?? 0,
+      unit,
+    })
+  })
+  const totalOutgoing = roundQty(group.items.reduce((s, i) => s + (i.outgoingQty ?? 0), 0), 2)
+  const footerTpl = tForLang('template.farmer_order.footer', lang)
+  const footer = applyTemplate(footerTpl, { totalOutgoing })
+  return [header.trim(), ...itemLines, footer.trim()].join('\n')
+}
+
 /**
  * @param {Array<object>} assignments
  * @param {string} productId
@@ -56,18 +159,14 @@ function assignmentsForProduct (assignments, productId) {
   return assignments.filter((a) => a.productId === productId)
 }
 
-/**
- * @param {Array<object>} assignments
- * @param {string} productId
- */
-function productMetaFromAssignments (assignments, productId) {
-  const rows = assignmentsForProduct(assignments, productId)
-  const first = rows[0]
-  return {
-    productName: first?.productName ?? productId,
-    unit: first?.unit ?? UNIT_TYPES.KG,
-    bufferPct: first?.bufferPct ?? 0,
-  }
+function shouldShowAssignmentCard (item, assignmentRows) {
+  if ((item.totalOrderedQty ?? 0) > 0) return true
+  return (assignmentRows ?? []).some((row) => {
+    if (row.assignmentId) return true
+    if (row.farmerId) return true
+    const qty = Number(row.qty)
+    return Number.isFinite(qty) && qty > 0
+  })
 }
 
 function buildInitialAssignmentRows (assignments, productId) {
@@ -118,7 +217,7 @@ function FarmerAssignmentRow ({
         <input
           type="number"
           min={0}
-          step="any"
+          step={qtyInputStep(unit)}
           value={row.qty}
           onChange={(e) => onQtyChange(row.rowKey, e.target.value)}
           className="w-24 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-2 text-sm"
@@ -140,16 +239,14 @@ function FarmerAssignmentRow ({
   )
 }
 
-function BufferCard ({
+function AssignmentCard ({
   item,
   productName,
   unit,
-  bufferPct,
   assignmentRows,
   farmers,
   saving,
   cardErrorKey,
-  onBufferPctChange,
   onFarmerChange,
   onQtyChange,
   onAddRow,
@@ -158,55 +255,23 @@ function BufferCard ({
   t,
 }) {
   const totalOrderedQty = item.totalOrderedQty ?? 0
-  const bufferQty = calcBufferQty(totalOrderedQty, bufferPct)
-  const outgoingQty = calcOutgoingQty(totalOrderedQty, bufferQty)
+  const unitLabel = UNIT_TRANSLATION_KEYS[unit] ? t(UNIT_TRANSLATION_KEYS[unit]) : unit
 
   const sumAssigned = assignmentRows.reduce((sum, row) => {
     const n = Number(row.qty)
     return sum + (Number.isFinite(n) ? n : 0)
   }, 0)
 
-  const hasVariance = roundQty(sumAssigned, 2) !== outgoingQty
+  const hasVariance = roundQty(sumAssigned, 2) !== roundQty(totalOrderedQty, 2)
 
   return (
     <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold text-[--color-primary]">{productName}</h3>
         <p className="text-sm text-[--color-text-secondary]">
-          {totalOrderedQty} {UNIT_TRANSLATION_KEYS[unit] ? t(UNIT_TRANSLATION_KEYS[unit]) : unit}{' '}
+          {totalOrderedQty} {unitLabel}{' '}
           {t('delivery.total_ordered')}
         </p>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-[--color-text-secondary]">{t('delivery.buffer_pct_label')}</span>
-        <input
-          type="number"
-          min={0}
-          max={100}
-          step={1}
-          value={bufferPct}
-          onChange={(e) => {
-            const raw = e.target.value
-            if (raw === '') {
-              onBufferPctChange(0)
-              return
-            }
-            const n = Math.min(100, Math.max(0, Math.floor(Number(raw))))
-            onBufferPctChange(Number.isFinite(n) ? n : 0)
-          }}
-          className="w-16 rounded-lg border border-[--color-border] px-2 py-1.5 text-sm"
-        />
-        <span className="text-[--color-text-secondary]">%</span>
-        <span className="text-[--color-text-secondary]">
-          {formatQtyWithUnit(bufferQty, unit, t)}
-        </span>
-        <span className="ml-2 text-[--color-text-secondary]">
-          {t('delivery.outgoing_qty_label')}:{' '}
-          <span className="font-medium text-[--color-text-primary]">
-            {formatQtyWithUnit(outgoingQty, unit, t)}
-          </span>
-        </span>
       </div>
 
       <div className="space-y-2">
@@ -236,7 +301,7 @@ function BufferCard ({
         </button>
         {hasVariance && (
           <p className="text-sm text-[--color-warning]" role="status">
-            {t('delivery.assignment_variance_warning')}: {sumAssigned} / {outgoingQty}
+            {t('delivery.assignment_variance_warning')}: {sumAssigned} / {totalOrderedQty}
           </p>
         )}
       </div>
@@ -259,95 +324,242 @@ function BufferCard ({
   )
 }
 
-function buildFarmerItemLine (itemName, preorderQty, bufferQty, outgoingQty, unit) {
-  return `${itemName} — ${preorderQty} + ${bufferQty} buffer = ${outgoingQty} ${unit}`
+function StatChip ({ label, value }) {
+  return (
+    <div className="inline-flex items-baseline gap-1.5 rounded-full border border-[--color-border] bg-[--color-surface] px-3 py-1.5 text-sm">
+      <span className="text-[--color-text-secondary]">{label}</span>
+      <span className="font-semibold tabular-nums text-[--color-text-primary]">{value}</span>
+    </div>
+  )
 }
 
-function CopyableFarmerOrder ({
-  groupedByFarmer,
-  exportLang,
-  onExportLangChange,
-  t,
-}) {
+function FarmerSummaryCard ({ group, lang, marketDate, t, copied, onCopy }) {
+  const maxOutgoing = group.items.reduce((m, i) => Math.max(m, i.outgoingQty ?? 0), 0)
+  const totalOutgoing = roundQty(group.items.reduce((s, i) => s + (i.outgoingQty ?? 0), 0), 2)
+  const copyText = buildFarmerCopyText(group, lang, marketDate)
+  const isTa = lang === 'ta'
+  const itemCountLabel = applyTemplate(t('delivery.summary.line_item_count'), {
+    count: group.items.length,
+  })
+  const whatsAppHref = group.phone
+    ? `https://wa.me/${group.phone.replace(/\D/g, '')}?text=${encodeURIComponent(copyText)}`
+    : null
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-xl border border-[--color-border] bg-[--color-surface]">
+      {/* Card header */}
+      <div className="flex items-start gap-3 border-b border-[--color-border] p-4">
+        <div
+          aria-hidden
+          className="flex h-10 w-10 flex-shrink-0 select-none items-center justify-center rounded-lg bg-[--color-primary-light] text-sm font-bold text-[--color-primary]"
+        >
+          {farmerInitials(group.farmerName)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`font-semibold leading-tight text-[--color-text-primary]${isTa ? ' font-tamil' : ''}`}>
+            {group.farmerName}
+          </p>
+          {group.location ? (
+            <p className="mt-0.5 text-xs text-[--color-text-secondary]">{group.location}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Produce rows */}
+      <div className="flex-1 space-y-3 p-4">
+        {group.items.map((item) => {
+          const dotColor = productDotColor(item.productId)
+          const productName = localizedProductName(item, lang)
+          const unitLabel = UNIT_TRANSLATION_KEYS[item.unit]
+            ? tForLang(UNIT_TRANSLATION_KEYS[item.unit], lang)
+            : item.unit
+          const barPct =
+            maxOutgoing > 0
+              ? Math.min(100, Math.round(((item.outgoingQty ?? 0) / maxOutgoing) * 100))
+              : 0
+
+          return (
+            <div key={item.productId}>
+              <div className="flex items-start gap-2">
+                <span
+                  className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: dotColor }}
+                />
+                <span
+                  className={`flex-1 truncate text-sm text-[--color-text-primary]${isTa ? ' font-tamil' : ''}`}
+                >
+                  {productName}
+                </span>
+                <span className="flex-shrink-0 text-sm font-medium tabular-nums text-[--color-text-primary]">
+                  {item.outgoingQty ?? 0} {unitLabel}
+                </span>
+              </div>
+              {/* Proportional bar scaled to outgoing_qty relative to max on this card */}
+              <div className="ml-4 mt-1.5 h-1 overflow-hidden rounded-full bg-[--color-border]">
+                <div
+                  className="h-full rounded-full transition-[width]"
+                  style={{ width: `${barPct}%`, backgroundColor: dotColor }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Card footer */}
+      <div className="flex items-center justify-between gap-2 border-t border-[--color-border] px-4 py-3">
+        <p className="text-sm text-[--color-text-secondary]">
+          {t('delivery.outgoing_qty_label')}:{' '}
+          <span className="font-semibold tabular-nums text-[--color-text-primary]">
+            {totalOutgoing} kg
+          </span>
+          <span className="ml-1 text-[--color-text-secondary]">· {itemCountLabel}</span>
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onCopy(group.farmerId, copyText)}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[--color-primary] hover:bg-[--color-primary-light]"
+          >
+            <Copy size={16} strokeWidth={1.5} />
+            {copied ? t('action.copied') : t('action.copy')}
+          </button>
+          {whatsAppHref ? (
+            <a
+              href={whatsAppHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[--color-success] hover:bg-[--color-success-light]"
+            >
+              {t('action.whatsapp')}
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FarmerOrderSummaryGrid ({ groupedByFarmer, farmers, lang, marketDate, t }) {
+  const [search, setSearch] = useState('')
   const [copiedFarmerId, setCopiedFarmerId] = useState(null)
+  const [copiedAll, setCopiedAll] = useState(false)
+
+  const groupsWithPhone = useMemo(() => {
+    const phoneById = new Map((farmers ?? []).map((f) => [f.farmerId, f.phone ?? '']))
+    return groupedByFarmer.map((g) => ({
+      ...g,
+      phone: g.phone ?? phoneById.get(g.farmerId) ?? '',
+    }))
+  }, [groupedByFarmer, farmers])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return groupsWithPhone
+    return groupsWithPhone.filter((g) =>
+      (g.farmerName ?? '').toLowerCase().includes(q),
+    )
+  }, [groupsWithPhone, search])
+
+  const totalFarmers = groupsWithPhone.length
+  const totalOutgoing = roundQty(
+    groupsWithPhone.reduce(
+      (sum, g) => sum + g.items.reduce((s, i) => s + (i.outgoingQty ?? 0), 0),
+      0,
+    ),
+    2,
+  )
+  const distinctProducts = useMemo(() => {
+    const ids = new Set()
+    for (const g of groupsWithPhone) {
+      for (const item of g.items) ids.add(item.productId)
+    }
+    return ids.size
+  }, [groupsWithPhone])
 
   const handleCopy = async (farmerId, text) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopiedFarmerId(farmerId)
+      setCopiedAll(false)
       setTimeout(() => setCopiedFarmerId(null), COPY_LABEL_RESET_MS)
     } catch {
       setCopiedFarmerId(null)
     }
   }
 
-  if (groupedByFarmer.length === 0) {
-    return null
+  const handleCopyAll = async () => {
+    const allText = filtered
+      .map((group) => buildFarmerCopyText(group, lang, marketDate))
+      .join('\n\n')
+    try {
+      await navigator.clipboard.writeText(allText)
+      setCopiedAll(true)
+      setCopiedFarmerId(null)
+      setTimeout(() => setCopiedAll(false), COPY_LABEL_RESET_MS)
+    } catch {
+      setCopiedAll(false)
+    }
   }
 
+  if (groupsWithPhone.length === 0) return null
+
   return (
-    <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
-      <h3 className="mb-3 font-semibold text-[--color-primary]">
+    <div className="space-y-4">
+      <h3 className="font-semibold text-[--color-primary]">
         {t('delivery.farmer_order_export_title')}
       </h3>
-      <div className="mb-4 flex gap-2">
+
+      {/* Summary stat chips */}
+      <div className="flex flex-wrap gap-2">
+        <StatChip label={t('delivery.summary.total_farmers')} value={totalFarmers} />
+        <StatChip label={t('delivery.summary.total_outgoing')} value={`${totalOutgoing} kg`} />
+        <StatChip label={t('delivery.summary.distinct_products')} value={distinctProducts} />
+      </div>
+
+      {/* Search / filter + copy all */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <input
+          type="search"
+          placeholder={t('delivery.farmer_search.placeholder')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-xs flex-1 rounded-lg border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm text-[--color-text-primary] placeholder:text-[--color-text-disabled] focus:outline-none focus:ring-2 focus:ring-[--color-primary-light]"
+        />
         <button
           type="button"
-          onClick={() => onExportLangChange('en')}
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
-            exportLang === 'en'
-              ? 'bg-[--color-primary] text-[--color-text-inverse]'
-              : 'bg-[--color-surface-raised] text-[--color-text-secondary]'
-          }`}
+          onClick={handleCopyAll}
+          disabled={filtered.length === 0}
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm font-medium text-[--color-primary] hover:bg-[--color-primary-light] disabled:opacity-50"
         >
-          {t('lang.english')}
-        </button>
-        <button
-          type="button"
-          onClick={() => onExportLangChange('ta')}
-          className={`rounded-full px-3 py-1 text-xs font-medium font-tamil ${
-            exportLang === 'ta'
-              ? 'bg-[--color-primary] text-[--color-text-inverse]'
-              : 'bg-[--color-surface-raised] text-[--color-text-secondary]'
-          }`}
-        >
-          {t('lang.tamil')}
+          <Copy size={16} strokeWidth={1.5} />
+          {copiedAll ? t('action.copied') : t('delivery.copy_all_assignments')}
         </button>
       </div>
-      <div className="space-y-4">
-        {groupedByFarmer.map((group) => {
-          const itemLines = group.items.map((item) =>
-            buildFarmerItemLine(
-              exportLang === 'ta' && item.nameTa ? item.nameTa : item.productName,
-              item.preorderQty,
-              item.bufferQty,
-              item.outgoingQty,
-              item.unit,
-            ),
-          )
-          const farmerText = [group.farmerName, ...itemLines].join('\n')
-          return (
-            <div
+
+      {/* Card grid — 1-col mobile, 2-col ≥768px */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {filtered.map((group) => (
+            <FarmerSummaryCard
               key={group.farmerId}
-              className="rounded-lg border border-[--color-border] bg-[--color-background] p-3"
-            >
-              <pre className="whitespace-pre-wrap font-sans text-sm text-[--color-text-primary]">
-                {farmerText}
-              </pre>
-              <button
-                type="button"
-                onClick={() => handleCopy(group.farmerId, farmerText)}
-                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[--color-primary]"
-              >
-                <Copy size={16} strokeWidth={1.5} />
-                {copiedFarmerId === group.farmerId
-                  ? t('action.copied')
-                  : t('action.copy')}
-              </button>
-            </div>
-          )
-        })}
-      </div>
+              group={group}
+              lang={lang}
+              marketDate={marketDate}
+              t={t}
+              copied={copiedFarmerId === group.farmerId}
+              onCopy={handleCopy}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center py-16 text-center">
+          <SearchX size={32} strokeWidth={1.5} className="mb-3 text-[--color-text-disabled]" />
+          <p className="text-sm text-[--color-text-secondary]">
+            {t('delivery.farmer_search.no_results')}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -361,6 +573,7 @@ function DeliveredQtyRow ({
   onDraftChange,
   onSave,
   t,
+  lang,
 }) {
   const savedQty = assignment.deliveredQty ?? 0
   const parsedDraft = draftQty === '' ? null : Number(draftQty)
@@ -403,7 +616,9 @@ function DeliveredQtyRow ({
     <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-[--color-text-primary]">{assignment.productName}</p>
+          <p className="font-medium text-[--color-text-primary]">
+            {localizedProductName(assignment, lang)}
+          </p>
           <p className="text-xs text-[--color-text-secondary]">{assignment.farmerName}</p>
           <p className="mt-1 text-sm text-[--color-text-secondary]">
             {t('delivery.expected_qty_label')}:{' '}
@@ -464,7 +679,7 @@ function DeliveredQtyRow ({
   )
 }
 
-function PackingCustomerCard ({ customer, t }) {
+function PackingCustomerCard ({ customer, t, lang }) {
   const lineItems = (customer.orders ?? []).flatMap((order) =>
     (order.lineItems ?? []).map((li) => ({
       ...li,
@@ -512,7 +727,9 @@ function PackingCustomerCard ({ customer, t }) {
                     key={`${li.productId}-${index}`}
                     className="border-b border-[--color-border] last:border-0"
                   >
-                    <td className="py-2 pr-2 text-[--color-text-primary]">{li.nameEn ?? li.productId}</td>
+                    <td className="py-2 pr-2 text-[--color-text-primary]">
+                      {localizedProductName(li, lang)}
+                    </td>
                     <td className="py-2 pr-2 text-[--color-text-secondary]">{li.orderedQty}</td>
                     <td
                       className={`py-2 pr-2 ${
@@ -549,11 +766,8 @@ export default function DeliveryManagement () {
   const [packingCustomers, setPackingCustomers] = useState([])
   const [farmers, setFarmers] = useState([])
 
-  const [bufferPctByProduct, setBufferPctByProduct] = useState({})
   const [assignmentRowsByProduct, setAssignmentRowsByProduct] = useState({})
   const [deliveredDrafts, setDeliveredDrafts] = useState({})
-  const [exportLang, setExportLang] = useState('en')
-
   const [subTab, setSubTab] = useState('delivered')
   const [loading, setLoading] = useState(true)
   const [loadErrorKey, setLoadErrorKey] = useState(null)
@@ -590,14 +804,10 @@ export default function DeliveryManagement () {
     (isDeliveryView || hasDeliveredData || hasPackingData)
 
   const initializeFromDelivery = useCallback((items, assignmentList) => {
-    const pct = {}
     const rows = {}
     for (const item of items) {
-      const meta = productMetaFromAssignments(assignmentList, item.productId)
-      pct[item.productId] = meta.bufferPct
       rows[item.productId] = buildInitialAssignmentRows(assignmentList, item.productId)
     }
-    setBufferPctByProduct(pct)
     setAssignmentRowsByProduct(rows)
 
     const drafts = {}
@@ -612,7 +822,7 @@ export default function DeliveryManagement () {
     const [deliveryData, packingData, farmersData] = await Promise.all([
       apiGet(`/api/v1/weeks/${activeWeekId}/delivery`),
       apiGet(`/api/v1/weeks/${activeWeekId}/packing`),
-      apiGet('/api/v1/farmers?type=outstation&status=active'),
+      apiGet('/api/v1/farmers?status=active'),
     ])
 
     const assignmentList = deliveryData.assignments ?? []
@@ -663,14 +873,15 @@ export default function DeliveryManagement () {
     [farmers],
   )
 
+  const farmerLocationById = useMemo(
+    () => new Map(farmers.map((f) => [f.farmerId, f.location ?? ''])),
+    [farmers],
+  )
+
   const exportGroupedByFarmer = useMemo(() => {
     const groups = new Map()
     for (const item of produceItems) {
       const productId = item.productId
-      const meta = productMetaFromAssignments(assignments, productId)
-      const pct = bufferPctByProduct[productId] ?? meta.bufferPct ?? 0
-      const totalOrdered = item.totalOrderedQty ?? 0
-      const bufferQty = calcBufferQty(totalOrdered, pct)
       const rows = assignmentRowsByProduct[productId] ?? []
 
       for (const row of rows) {
@@ -682,17 +893,17 @@ export default function DeliveryManagement () {
           groups.set(row.farmerId, {
             farmerId: row.farmerId,
             farmerName: farmerNameById.get(row.farmerId) ?? row.farmerId,
+            location: farmerLocationById.get(row.farmerId) ?? '',
             items: [],
           })
         }
         groups.get(row.farmerId).items.push({
           productId,
-          productName: meta.productName,
-          nameTa: null,
-          preorderQty: totalOrdered,
-          bufferQty,
+          nameEn: item.nameEn ?? productId,
+          nameTa: item.nameTa ?? null,
+          preorderQty: item.totalOrderedQty ?? 0,
           outgoingQty: qty,
-          unit: meta.unit,
+          unit: item.unit ?? UNIT_TYPES.KG,
         })
       }
     }
@@ -701,15 +912,17 @@ export default function DeliveryManagement () {
     )
   }, [
     produceItems,
-    assignments,
-    bufferPctByProduct,
     assignmentRowsByProduct,
     farmerNameById,
+    farmerLocationById,
   ])
 
-  const handleBufferPctChange = (productId, value) => {
-    setBufferPctByProduct((prev) => ({ ...prev, [productId]: value }))
-  }
+  const assignableProduceItems = useMemo(
+    () => produceItems.filter((item) =>
+      shouldShowAssignmentCard(item, assignmentRowsByProduct[item.productId]),
+    ),
+    [produceItems, assignmentRowsByProduct],
+  )
 
   const handleAddAssignmentRow = (productId) => {
     setAssignmentRowsByProduct((prev) => ({
@@ -753,8 +966,7 @@ export default function DeliveryManagement () {
   const handleSaveBufferCard = async (item) => {
     const productId = item.productId
     const totalOrderedQty = item.totalOrderedQty ?? 0
-    const bufferPct = bufferPctByProduct[productId] ?? 0
-    const bufferQty = calcBufferQty(totalOrderedQty, bufferPct)
+    const unit = item.unit ?? UNIT_TYPES.KG
     const rows = assignmentRowsByProduct[productId] ?? []
 
     setSavingProductId(productId)
@@ -768,8 +980,8 @@ export default function DeliveryManagement () {
           setCardErrors((prev) => ({ ...prev, [productId]: 'error.validation' }))
           return
         }
-        const rowOutgoing = Number(row.qty)
-        if (!Number.isFinite(rowOutgoing) || rowOutgoing < 0) {
+        const rowOutgoing = parseQtyForUnit(row.qty, unit)
+        if (rowOutgoing == null) {
           setCardErrors((prev) => ({ ...prev, [productId]: 'error.validation' }))
           return
         }
@@ -781,9 +993,8 @@ export default function DeliveryManagement () {
             farmerId: row.farmerId,
             productId,
             preorderQty: totalOrderedQty,
-            bufferPct,
-            bufferQty,
-            outgoingQty: rowOutgoing,
+            bufferQty: 0,
+            assignedQty: rowOutgoing,
           },
         )
 
@@ -795,13 +1006,15 @@ export default function DeliveryManagement () {
           farmerId: row.farmerId,
           productId,
           farmerName: result.farmerName ?? farmerNameById.get(row.farmerId),
-          productName: result.productName ?? productMetaFromAssignments(assignments, productId).productName,
+          productName: result.productName ?? item.nameEn ?? productId,
+          nameEn: result.nameEn ?? item.nameEn ?? productId,
+          nameTa: result.nameTa ?? item.nameTa ?? null,
           preorderQty: totalOrderedQty,
-          bufferPct,
-          bufferQty,
-          outgoingQty: rowOutgoing,
+          bufferPct: null,
+          bufferQty: 0,
+          outgoingQty: result.outgoingQty ?? rowOutgoing,
           deliveredQty: result.deliveredQty ?? 0,
-          unit: productMetaFromAssignments(assignments, productId).unit,
+          unit,
           aggregatedOrderedQty: totalOrderedQty,
           shortfallFlag: false,
         }
@@ -944,50 +1157,44 @@ export default function DeliveryManagement () {
         <>
           {isLockedView && (
             <div className="space-y-4">
-              {produceItems.length === 0 ? (
+              {assignableProduceItems.length === 0 ? (
                 <div className="rounded-xl border border-[--color-border] bg-[--color-surface] p-4 text-sm text-[--color-text-secondary]">
                   {t('empty.produce_list')}
                 </div>
               ) : (
-                produceItems.map((item) => {
-                  const meta = productMetaFromAssignments(assignments, item.productId)
-                  return (
-                    <BufferCard
-                      key={item.productId}
-                      item={item}
-                      productName={meta.productName}
-                      unit={meta.unit}
-                      bufferPct={bufferPctByProduct[item.productId] ?? meta.bufferPct}
-                      assignmentRows={
-                        assignmentRowsByProduct[item.productId] ??
-                        buildInitialAssignmentRows(assignments, item.productId)
-                      }
-                      farmers={farmers}
-                      saving={savingProductId === item.productId}
-                      cardErrorKey={cardErrors[item.productId]}
-                      onBufferPctChange={(value) =>
-                        handleBufferPctChange(item.productId, value)
-                      }
-                      onFarmerChange={(rowKey, farmerId) =>
-                        handleFarmerChange(item.productId, rowKey, farmerId)
-                      }
-                      onQtyChange={(rowKey, qty) =>
-                        handleAssignmentQtyChange(item.productId, rowKey, qty)
-                      }
-                      onAddRow={() => handleAddAssignmentRow(item.productId)}
-                      onRemoveRow={(rowKey) =>
-                        handleRemoveAssignmentRow(item.productId, rowKey)
-                      }
-                      onSave={() => handleSaveBufferCard(item)}
-                      t={t}
-                    />
-                  )
-                })
+                assignableProduceItems.map((item) => (
+                  <AssignmentCard
+                    key={item.productId}
+                    item={item}
+                    productName={localizedProductName(item, lang)}
+                    unit={item.unit ?? UNIT_TYPES.KG}
+                    assignmentRows={
+                      assignmentRowsByProduct[item.productId] ??
+                      buildInitialAssignmentRows(assignments, item.productId)
+                    }
+                    farmers={farmers}
+                    saving={savingProductId === item.productId}
+                    cardErrorKey={cardErrors[item.productId]}
+                    onFarmerChange={(rowKey, farmerId) =>
+                      handleFarmerChange(item.productId, rowKey, farmerId)
+                    }
+                    onQtyChange={(rowKey, qty) =>
+                      handleAssignmentQtyChange(item.productId, rowKey, qty)
+                    }
+                    onAddRow={() => handleAddAssignmentRow(item.productId)}
+                    onRemoveRow={(rowKey) =>
+                      handleRemoveAssignmentRow(item.productId, rowKey)
+                    }
+                    onSave={() => handleSaveBufferCard(item)}
+                    t={t}
+                  />
+                ))
               )}
-              <CopyableFarmerOrder
+              <FarmerOrderSummaryGrid
                 groupedByFarmer={exportGroupedByFarmer}
-                exportLang={exportLang}
-                onExportLangChange={setExportLang}
+                farmers={farmers}
+                lang={lang}
+                marketDate={marketDate}
                 t={t}
               />
             </div>
@@ -1049,6 +1256,7 @@ export default function DeliveryManagement () {
                         onDraftChange={handleDeliveredDraftChange}
                         onSave={handleSaveDeliveredQty}
                         t={t}
+                        lang={lang}
                       />
                     ))
                   )}
@@ -1070,6 +1278,7 @@ export default function DeliveryManagement () {
                         key={customer.customerId}
                         customer={customer}
                         t={t}
+                        lang={lang}
                       />
                     ))
                   )}

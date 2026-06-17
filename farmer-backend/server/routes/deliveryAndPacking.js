@@ -38,6 +38,18 @@ function toIsoString (value) {
 }
 
 /**
+ * @param {number} value
+ * @param {string} unit
+ * @returns {number}
+ */
+function roundQtyForUnit (value, unit) {
+  if (unit === 'piece' || unit === 'bunch') {
+    return Math.floor(value)
+  }
+  return Math.round(value * 100) / 100
+}
+
+/**
  * @param {object} assignment
  */
 function toAssignmentResponse (assignment) {
@@ -108,10 +120,7 @@ async function resolveDeliveryPatchAction (request) {
   const hasModeAFields =
     body.farmerId != null &&
     body.productId != null &&
-    (body.preorderQty != null ||
-      body.bufferPct != null ||
-      body.bufferQty != null ||
-      body.outgoingQty != null)
+    (body.preorderQty != null || body.bufferQty != null)
   const hasModeB = body.deliveredQty != null
 
   if (hasModeAFields && hasModeB) {
@@ -199,11 +208,14 @@ async function deliveryAndPackingRoutes (fastify) {
         status: 'confirmed'
       }).lean(),
       Farmer.find({ active: true }).select('farmer_id name').lean(),
-      ProductCatalogue.find({ active: true }).select('product_id name_en').lean()
+      ProductCatalogue.find({ active: true }).select('product_id name_en name_ta').lean()
     ])
 
     const farmerNameById = new Map(farmers.map(f => [f.farmer_id, f.name]))
-    const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
+    const productById = new Map(products.map(p => [p.product_id, {
+      nameEn: p.name_en,
+      nameTa: p.name_ta || null
+    }]))
     const produceByProductId = new Map(produceItems.map(p => [p.product_id, p]))
 
     const orderedByProduct = new Map()
@@ -228,12 +240,16 @@ async function deliveryAndPackingRoutes (fastify) {
       const aggregatedOrderedQty = orderedByProduct.get(asgn.product_id) ?? 0
       const totalDelivered = deliveredByProduct.get(asgn.product_id) ?? 0
       const produce = produceByProductId.get(asgn.product_id)
+      const product = productById.get(asgn.product_id)
+      const nameEn = product?.nameEn ?? asgn.product_id
       return {
         assignmentId: asgn.assignment_id,
         farmerId: asgn.farmer_id,
         farmerName: farmerNameById.get(asgn.farmer_id) ?? asgn.farmer_id,
         productId: asgn.product_id,
-        productName: productNameById.get(asgn.product_id) ?? asgn.product_id,
+        productName: nameEn,
+        nameEn,
+        nameTa: product?.nameTa ?? null,
         preorderQty: asgn.preorder_qty,
         bufferPct: asgn.buffer_pct,
         bufferQty: asgn.buffer_qty,
@@ -245,12 +261,18 @@ async function deliveryAndPackingRoutes (fastify) {
       }
     })
 
-    const items = produceItems.map(produce => ({
-      produceItemId: produce.produce_item_id,
-      productId: produce.product_id,
-      totalOrderedQty: orderedByProduct.get(produce.product_id) ?? 0,
-      totalDeliveredQty: deliveredByProduct.get(produce.product_id) ?? 0
-    }))
+    const items = produceItems.map(produce => {
+      const product = productById.get(produce.product_id)
+      return {
+        produceItemId: produce.produce_item_id,
+        productId: produce.product_id,
+        nameEn: product?.nameEn ?? produce.product_id,
+        nameTa: product?.nameTa ?? null,
+        unit: produce.unit ?? 'kg',
+        totalOrderedQty: orderedByProduct.get(produce.product_id) ?? 0,
+        totalDeliveredQty: deliveredByProduct.get(produce.product_id) ?? 0
+      }
+    })
 
     return { assignments: assignmentRows, items }
   })
@@ -274,7 +296,7 @@ async function deliveryAndPackingRoutes (fastify) {
           preorderQty: { type: 'number', minimum: 0 },
           bufferPct: { type: 'number', minimum: 0 },
           bufferQty: { type: 'number', minimum: 0 },
-          outgoingQty: { type: 'number', minimum: 0 },
+          assignedQty: { type: 'number', minimum: 0 },
           deliveredQty: { type: 'number', minimum: 0 },
           overrideVolunteer: { type: 'boolean' }
         }
@@ -306,23 +328,21 @@ async function deliveryAndPackingRoutes (fastify) {
         farmerId,
         productId,
         preorderQty,
-        bufferPct,
         bufferQty,
-        outgoingQty
+        assignedQty
       } = body
+      // bufferPct is deprecated — ignored when present (gradual frontend migration)
 
       if (
         farmerId == null ||
         productId == null ||
         preorderQty == null ||
-        bufferPct == null ||
-        bufferQty == null ||
-        outgoingQty == null
+        bufferQty == null
       ) {
         throw new AppError(
           'VALIDATION_ERROR',
           400,
-          'farmerId, productId, preorderQty, bufferPct, bufferQty, and outgoingQty are required for assignment mode',
+          'farmerId, productId, preorderQty, and bufferQty are required for assignment mode',
           {}
         )
       }
@@ -345,6 +365,13 @@ async function deliveryAndPackingRoutes (fastify) {
         )
       }
 
+      const unit = produce.unit ?? 'kg'
+      const normalizedBufferQty = roundQtyForUnit(bufferQty, unit)
+      const targetOutgoingQty = roundQtyForUnit(preorderQty + normalizedBufferQty, unit)
+      const outgoingQty = assignedQty != null
+        ? roundQtyForUnit(assignedQty, unit)
+        : targetOutgoingQty
+
       let assignment = await FarmerOrderAssignment.findOne({
         week_id: weekId,
         assignment_id: assignmentId
@@ -355,8 +382,8 @@ async function deliveryAndPackingRoutes (fastify) {
         farmer_id: farmerId,
         product_id: productId,
         preorder_qty: preorderQty,
-        buffer_pct: bufferPct,
-        buffer_qty: bufferQty,
+        buffer_pct: null,
+        buffer_qty: normalizedBufferQty,
         outgoing_qty: outgoingQty,
         delivered_qty: assignment?.delivered_qty ?? 0,
         created_by: operatorId
@@ -418,9 +445,15 @@ async function deliveryAndPackingRoutes (fastify) {
     await assignment.save()
 
     const productId = assignment.product_id
+    const aggResult = await FarmerOrderAssignment.aggregate([
+      { $match: { week_id: weekId, product_id: productId } },
+      { $group: { _id: null, totalDelivered: { $sum: '$delivered_qty' } } }
+    ])
+    const totalDelivered = aggResult[0]?.totalDelivered ?? 0
+
     const totalOrdered = await sumConfirmedOrderedQty(weekId, productId)
-    const result = await runFcfsAllocation(weekId, productId, deliveredQty, db)
-    const fcfsTriggered = deliveredQty < totalOrdered
+    const result = await runFcfsAllocation(weekId, productId, totalDelivered, db)
+    const fcfsTriggered = totalDelivered < totalOrdered
     const allocations = result.allocated.map(row => ({
       orderId: row.orderId,
       allocatedQty: row.allocatedQty,
@@ -454,12 +487,15 @@ async function deliveryAndPackingRoutes (fastify) {
         status: { $in: ['confirmed', 'packed'] }
       }).lean(),
       Customer.find({ active: true }).select('customer_id name').lean(),
-      ProductCatalogue.find({ active: true }).select('product_id name_en').lean(),
+      ProductCatalogue.find({ active: true }).select('product_id name_en name_ta').lean(),
       WeeklyProduceItem.find({ week_id: weekId }).lean()
     ])
 
     const customerNameById = new Map(customers.map(c => [c.customer_id, c.name]))
-    const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
+    const productById = new Map(products.map(p => [p.product_id, {
+      nameEn: p.name_en,
+      nameTa: p.name_ta || null
+    }]))
     const fcfsRankByOrderId = await buildFcfsRankByOrderId(weekId)
 
     const byCustomer = new Map()
@@ -473,14 +509,18 @@ async function deliveryAndPackingRoutes (fastify) {
         })
       }
 
-      const lineItems = (order.line_items ?? []).map(li => ({
-        productId: li.product_id,
-        nameEn: productNameById.get(li.product_id) ?? li.product_id,
-        orderedQty: li.ordered_qty,
-        allocatedQty: li.delivered_qty,
-        unit: li.unit,
-        fcfsRank: fcfsRankByOrderId.get(order.order_id) ?? null
-      }))
+      const lineItems = (order.line_items ?? []).map(li => {
+        const product = productById.get(li.product_id)
+        return {
+          productId: li.product_id,
+          nameEn: product?.nameEn ?? li.product_id,
+          nameTa: product?.nameTa ?? null,
+          orderedQty: li.ordered_qty,
+          allocatedQty: li.delivered_qty,
+          unit: li.unit,
+          fcfsRank: fcfsRankByOrderId.get(order.order_id) ?? null
+        }
+      })
 
       byCustomer.get(order.customer_id).orders.push({
         orderId: order.order_id,
@@ -595,11 +635,14 @@ async function deliveryAndPackingRoutes (fastify) {
         status: { $in: ['packed', 'dispatched'] }
       }).lean(),
       Customer.find({ active: true }).select('customer_id name').lean(),
-      ProductCatalogue.find({ active: true }).select('product_id name_en').lean()
+      ProductCatalogue.find({ active: true }).select('product_id name_en name_ta').lean()
     ])
 
     const customerNameById = new Map(customers.map(c => [c.customer_id, c.name]))
-    const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
+    const productById = new Map(products.map(p => [p.product_id, {
+      nameEn: p.name_en,
+      nameTa: p.name_ta || null
+    }]))
 
     return {
       orders: orders.map(order => ({
@@ -608,12 +651,16 @@ async function deliveryAndPackingRoutes (fastify) {
         customerName: customerNameById.get(order.customer_id) ?? order.customer_id,
         status: order.status,
         balanceDue: order.balance_due,
-        lineItems: (order.line_items ?? []).map(li => ({
-          productId: li.product_id,
-          nameEn: productNameById.get(li.product_id) ?? li.product_id,
-          deliveredQty: li.delivered_qty,
-          unit: li.unit
-        }))
+        lineItems: (order.line_items ?? []).map(li => {
+          const product = productById.get(li.product_id)
+          return {
+            productId: li.product_id,
+            nameEn: product?.nameEn ?? li.product_id,
+            nameTa: product?.nameTa ?? null,
+            deliveredQty: li.delivered_qty,
+            unit: li.unit
+          }
+        })
       }))
     }
   })

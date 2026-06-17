@@ -317,7 +317,14 @@ POST   /catalogue                — add product (operator)
 PATCH  /catalogue/:productId     — edit product (operator)
 POST   /webhook/whatsapp         — WhatsApp Cloud API webhook (no auth, HMAC-verified)
 GET    /events/intake-queue      — SSE stream for real-time intake queue (operator)
+GET    /catalogue/search         — similarity-search against catalogue (operator, supports duplicate-check UI)
 ```
+
+**API conventions:**
+
+- API responses that include product references resolve product_id to name_en and name_ta from the product_catalogue collection before serialisation. The frontend never displays a raw product_id to the operator.
+- A read-only similarity-search endpoint (GET /api/v1/catalogue/search?q=<name>) supports the duplicate-check UI in the add-product form. It runs the shared Levenshtein similarity utility against all active catalogue items and returns matches scoring ≥ 0.6, capped at 5 results. The POST /api/v1/catalogue route is not modified — the check is UI-only and advisory.
+- The farmer assignment upsert (PATCH /weeks/:weekId/delivery/:assignmentId, Mode A) accepts buffer_qty as a direct absolute quantity in the product's unit. buffer_pct is deprecated and nullable on the FarmerOrderAssignment model. outgoing_qty is always computed server-side as preorder_qty + buffer_qty and is not accepted from the client.
 
 ### 4.2 State Machine Enforcement Layer
 
@@ -435,6 +442,8 @@ function parseSegment(segment, produceList, synonymTable) {
 **"Same as last week" detection:** A pre-parse check tests the entire message against a list of trigger phrases (including Tamil equivalents). If matched, the parser returns immediately with a single item: `{ confidence: 'manual_required', reason: 'repeat_order' }`. The parser does not attempt to retrieve last week's order — that is a post-MVP feature.
 
 **Voice note and image handling:** The webhook handler checks `media_type` before invoking the parser. If `media_type` is not `text`, the parser is not called. The InboundMessage is written with `parse_status: 'voice_note'` or `parse_status: 'image'`.
+
+**Step 5b — Similarity fallback:** When the synonym table match (Step 5) returns no result, the parser runs a Levenshtein edit-distance pass against all name_en and name_ta values in the produce list. The best match is returned as suggestedProductId, suggestedProductName, and similarityScore fields on the ParseResult. These fields are computed at intake-queue read time (not stored in MongoDB) by the GET /weeks/:weekId/intake route handler, which re-runs the similarity pass against the current produce list before serialising the response. The similarity utility lives at server/lib/similarity.js and is shared with the catalogue duplicate-check feature.
 
 ### 4.5 FCFS Allocation Engine
 

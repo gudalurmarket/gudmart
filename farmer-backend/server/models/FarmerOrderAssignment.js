@@ -28,7 +28,8 @@ const farmerOrderAssignmentSchema = new mongoose.Schema(
     },
     buffer_pct: {
       type: Number,
-      required: true,
+      required: false,
+      default: null,
       min: 0
     },
     buffer_qty: {

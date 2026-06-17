@@ -82,6 +82,11 @@ export function LedgerRow ({ txn, olderTxn, t, lang }) {
               {t(channelKey)}
             </span>
           )}
+          {txn.type === WALLET_TX_TYPES.ORDER_DEBIT && (txn.productNames?.length ?? 0) > 0 && (
+            <p className="mt-1 text-xs text-[--color-text-secondary]">
+              {txn.productNames.join(', ')}
+            </p>
+          )}
           {(txn.referenceNote ?? txn.reference_note) && (
             <p className="mt-1 text-xs text-[--color-text-secondary]">
               {txn.referenceNote ?? txn.reference_note}

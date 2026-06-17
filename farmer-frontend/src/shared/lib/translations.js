@@ -202,6 +202,7 @@ export const translations = {
   'action.copy_to_clipboard': { en: 'Copy to clipboard', ta: 'கிளிப்போர்டுக்கு நகலெடு' }, // TA: REVIEW REQUIRED
   'action.copy': { en: 'Copy', ta: 'நகலெடு' },
   'action.copied': { en: 'Copied', ta: 'நகலெடுக்கப்பட்டது' },
+  'action.whatsapp': { en: 'WhatsApp', ta: 'WhatsApp' },
 
   // GROUP 12 — Navigation labels (operator screens)
   'nav.bottom.title': { en: 'Quick navigation', ta: 'விரைவு வழிசெலுத்தல்' },
@@ -386,6 +387,15 @@ export const translations = {
   'field.farmer_name': { en: 'Farmer Name', ta: 'விவசாயி பெயர்' },
   'field.farmer_location': { en: 'Farmer Location', ta: 'விவசாயி இடம்' },
   'field.farmer_type': { en: 'Farmer Type', ta: 'விவசாயி வகை' },
+  'label.preorder_delivery': { en: 'Preorder Delivery', ta: 'முன்பதிவு விநியோகம்' },
+  'label.market_day_surplus': { en: 'Market Day Surplus', ta: 'சந்தை நாள் உபரி' },
+  'label.total_due': { en: 'Total Due', ta: 'மொத்த தொகை' },
+  'label.delivered_qty': { en: 'Delivered', ta: 'வழங்கியது' },
+  'label.ordered_qty': { en: 'Ordered', ta: 'ஆர்டர் செய்தது' },
+  'label.preorder_commitment': {
+    en: 'Preorder Commitment This Week',
+    ta: 'இந்த வார முன்பதிவு அளவு',
+  },
 
   // GROUP 17 — Unit type labels (4 keys)
   'unit.kg': { en: 'kg', ta: 'கிலோ' },
@@ -440,6 +450,19 @@ export const translations = {
   },
   'intake.add_line_item': { en: 'Add line item', ta: 'வரி உருப்படியைச் சேர்' },
   'intake.remove_line_item': { en: 'Remove line item', ta: 'வரி உருப்படியை அகற்று' },
+  'intake.suggestion.raw_text': {
+    en: 'Raw text: "{{text}}"',
+    ta: 'அசல் உரை: "{{text}}"',
+  },
+  'intake.suggestion.did_you_mean': {
+    en: 'Did you mean: {{name}}?',
+    ta: '{{name}} என்று அர்த்தமா?',
+  },
+  'intake.suggestion.accept': { en: 'Accept', ta: 'ஏற்கவும்' },
+  'intake.suggestion.select_manually': {
+    en: 'Select manually',
+    ta: 'கைமுறையாக தேர்ந்தெடு',
+  },
   'intake.shortfall_amount': { en: 'Shortfall amount', ta: 'குறைவு தொகை' }, // TA: REVIEW REQUIRED
   'intake.not_open': {
     en: 'The intake queue is only available when the week is open for orders.',
@@ -497,6 +520,7 @@ export const translations = {
   },
   'delivery.total_ordered': { en: 'ordered', ta: 'ஆர்டர் செய்யப்பட்டது' },
   'delivery.buffer_pct_label': { en: 'Buffer %', ta: 'பஃபர் %' },
+  'farmer.buffer_label': { en: 'Buffer', ta: 'இருப்பு அளவு' },
   'delivery.outgoing_qty_label': { en: 'Outgoing', ta: 'வெளியேற்றம்' },
   'delivery.farmer_assignments_label': { en: 'Farmer Assignments', ta: 'விவசாயி ஒதுக்கீடுகள்' },
   'delivery.add_farmer_assignment': { en: 'Add Farmer', ta: 'விவசாயியைச் சேர்' },
@@ -505,6 +529,17 @@ export const translations = {
     ta: 'ஒதுக்கீடு மொத்தம் வெளியேற்ற அளவுடன் பொருந்தவில்லை',
   },
   'delivery.farmer_order_export_title': { en: 'Farmer Order Summary', ta: 'விவசாயி ஆர்டர் சுருக்கம்' },
+  'delivery.summary.total_farmers': { en: 'Farmers', ta: 'விவசாயிகள்' },
+  'delivery.summary.total_outgoing': { en: 'Total Outgoing', ta: 'மொத்த வெளியேற்றம்' }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
+  'delivery.summary.distinct_products': { en: 'Produce Types', ta: 'விளைவு வகைகள்' }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
+  'delivery.summary.preorder_label': { en: 'Preorder', ta: 'முன்பதிவு' }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
+  'delivery.farmer_search.placeholder': { en: 'Search farmers…', ta: 'விவசாயிகளை தேடுங்கள்…' }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
+  'delivery.farmer_search.no_results': {
+    en: 'No farmers match your search',
+    ta: 'தேடலுக்கு பொருந்தும் விவசாயிகள் இல்லை',
+  },
+  'delivery.copy_all_assignments': { en: 'Copy all', ta: 'அனைத்தையும் நகலெடு' },
+  'delivery.summary.line_item_count': { en: '{{count}} items', ta: '{{count}} வகைகள்' },
   'delivery.expected_qty_label': { en: 'Expected', ta: 'எதிர்பார்க்கப்படும்' },
   'delivery.tab_delivered_quantities': { en: 'Delivered Quantities', ta: 'வழங்கிய அளவுகள்' },
   'delivery.tab_packing_list': { en: 'Packing List', ta: 'பேக்கிங் பட்டியல்' },
@@ -543,12 +578,12 @@ export const translations = {
     ta: 'வெளிநகர் விவசாயிக்கான ஆர்டர்: {{farmerName}}\nசந்தை வாரம்: {{marketDate}}\n',
   }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
   'template.farmer_order.item_line': {
-    en: '{{productName}} - {{outgoingQty}} {{unit}}\n',
-    ta: '{{productName}} - {{outgoingQty}} {{unit}}\n',
+    en: '{{productName}} — {{outgoingQty}} {{unit}}',
+    ta: '{{productName}} — {{outgoingQty}} {{unit}}',
   }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
   'template.farmer_order.footer': {
-    en: '\nPlease dispatch the listed quantity to the collection point.',
-    ta: '\nகுறிப்பிட்ட அளவை சேகரிப்பு இடத்திற்கு அனுப்பவும்.',
+    en: 'Total outgoing: {{totalOutgoing}} kg\nPlease dispatch the listed quantity to the collection point.',
+    ta: 'மொத்த வெளியேற்றம்: {{totalOutgoing}} கிலோ\nகுறிப்பிட்ட அளவை சேகரிப்பு இடத்திற்கு அனுப்பவும்.',
   }, // TA: CONFIRM WITH OPERATOR IN C5 SESSION
 
   'template.order_summary.header': {
@@ -721,6 +756,18 @@ export const translations = {
   'registration.customer.show_inactive': { en: 'Show inactive', ta: 'செயலற்றவர்களை காட்டு' },
   'registration.farmer.show_inactive': { en: 'Show inactive', ta: 'செயலற்றவர்களை காட்டு' },
   'registration.catalogue.show_inactive': { en: 'Show inactive', ta: 'செயலற்றவற்றை காட்டு' },
+  'catalogue.duplicate_warning': {
+    en: 'Similar item already exists: "{name}". Add anyway?',
+    ta: 'இதே போன்ற பொருள் ஏற்கனவே உள்ளது: "{name}". இருந்தாலும் சேர்க்கவா?'
+  },
+  'catalogue.duplicate_confirm': {
+    en: 'Yes, add new item',
+    ta: 'ஆம், புதிதாக சேர்'
+  },
+  'catalogue.duplicate_cancel': {
+    en: 'Cancel',
+    ta: 'ரத்து செய்'
+  },
   'registration.filter.all': { en: 'All', ta: 'அனைத்தும்' },
   'registration.farmer.type_edit_disabled_hint': { en: 'Type cannot be changed after registration', ta: 'பதிவிற்கு பிறகு வகையை மாற்ற முடியாது' },
   'registration.save_success_customer': { en: 'Customer saved.', ta: 'வாடிக்கையாளர் சேமிக்கப்பட்டார்.' },

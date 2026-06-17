@@ -307,6 +307,42 @@ function BalancePaymentRow ({
   )
 }
 
+function PreorderCommitmentPanel ({ assignments, t }) {
+  if (!assignments.length) return null
+
+  return (
+    <div className="rounded-xl border border-[--color-border] bg-[--color-surface-raised] p-4">
+      <h3 className="text-sm font-semibold text-[--color-primary]">
+        {t('label.preorder_commitment')}
+      </h3>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
+              <th className="pb-2 pr-3 font-medium">{t('market_day.item_label')}</th>
+              <th className="pb-2 pr-3 font-medium">{t('label.ordered_qty')}</th>
+              <th className="pb-2 pr-3 font-medium">{t('label.delivered_qty')}</th>
+              <th className="pb-2 font-medium">{t('field.unit')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {assignments.map((row) => (
+              <tr key={row.assignmentId} className="border-b border-[--color-border] last:border-0">
+                <td className="py-2 pr-3 text-[--color-text-primary]">{row.productName}</td>
+                <td className="py-2 pr-3 text-[--color-text-secondary]">{row.outgoingQty ?? 0}</td>
+                <td className="py-2 pr-3 text-[--color-text-secondary]">{row.deliveredQty ?? 0}</td>
+                <td className="py-2 text-[--color-text-secondary]">
+                  {UNIT_TRANSLATION_KEYS[row.unit] ? t(UNIT_TRANSLATION_KEYS[row.unit]) : row.unit}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function LocalFarmerInboundForm ({
   weekId,
   farmerId,
@@ -797,6 +833,7 @@ export default function MarketDay () {
   const [produceItems, setProduceItems] = useState([])
   const [walkInSales, setWalkInSales] = useState([])
   const [inboundRecords, setInboundRecords] = useState([])
+  const [deliveryAssignments, setDeliveryAssignments] = useState([])
 
   const [selectedFarmerId, setSelectedFarmerId] = useState(null)
   const [expandedOrderId, setExpandedOrderId] = useState(null)
@@ -836,6 +873,11 @@ export default function MarketDay () {
     [inboundRecords, selectedFarmerId],
   )
 
+  const preorderForFarmer = useMemo(
+    () => deliveryAssignments.filter((a) => a.farmerId === selectedFarmerId),
+    [deliveryAssignments, selectedFarmerId],
+  )
+
   const walkInTotals = useMemo(() => {
     let cash = 0
     let upi = 0
@@ -869,11 +911,12 @@ export default function MarketDay () {
       setCurrentState(active.state)
       setMarketDate(active.marketDate ?? active.market_date)
 
-      const [ordersData, farmersData, produceData, walkinData] = await Promise.all([
+      const [ordersData, farmersData, produceData, walkinData, deliveryData] = await Promise.all([
         apiGet(`/api/v1/weeks/${id}/orders?status=dispatched`),
         apiGet('/api/v1/farmers?type=local&status=active'),
         apiGet(`/api/v1/weeks/${id}/produce`),
         apiGet(`/api/v1/weeks/${id}/walkin`),
+        apiGet(`/api/v1/weeks/${id}/delivery`),
       ])
 
       const farmers = farmersData.farmers ?? []
@@ -881,6 +924,7 @@ export default function MarketDay () {
       setLocalFarmers(farmers)
       setProduceItems(produceData.items ?? [])
       setWalkInSales(walkinData.sales ?? [])
+      setDeliveryAssignments(deliveryData.assignments ?? [])
 
       if (farmers.length > 0) {
         setSelectedFarmerId((prev) => prev ?? farmers[0].farmerId)
@@ -1033,14 +1077,17 @@ export default function MarketDay () {
                 </div>
 
                 {selectedFarmerId && (
-                  <LocalFarmerInboundForm
-                    weekId={weekId}
-                    farmerId={selectedFarmerId}
-                    produceItems={produceItems}
-                    canEdit={canEdit}
-                    onRecorded={handleInboundRecorded}
-                    t={t}
-                  />
+                  <>
+                    <PreorderCommitmentPanel assignments={preorderForFarmer} t={t} />
+                    <LocalFarmerInboundForm
+                      weekId={weekId}
+                      farmerId={selectedFarmerId}
+                      produceItems={produceItems}
+                      canEdit={canEdit}
+                      onRecorded={handleInboundRecorded}
+                      t={t}
+                    />
+                  </>
                 )}
 
                 {inboundForFarmer.length === 0 ? (

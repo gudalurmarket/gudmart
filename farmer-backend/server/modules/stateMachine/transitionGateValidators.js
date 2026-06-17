@@ -161,36 +161,38 @@ async function validateReconciliationToClosed (weekId) {
     }
   }
 
-  const incompleteInbound = await LocalFarmerInbound.find({
-    week_id: weekId,
-    $expr: {
-      $lte: [
-        {
-          $add: [
-            { $ifNull: ['$payment_amount_cash', 0] },
-            { $ifNull: ['$payment_amount_bank', 0] }
-          ]
-        },
-        0
-      ]
-    }
-  })
-    .select('inbound_id farmer_id item_name product_id')
+  const localFarmers = await Farmer.find({ farmer_type: 'local', active: true })
+    .select('farmer_id name')
     .lean()
+  const localFarmerIdSet = new Set(localFarmers.map(f => f.farmer_id))
+  const localFarmerNameById = new Map(localFarmers.map(f => [f.farmer_id, f.name]))
 
-  if (incompleteInbound.length > 0) {
-    const farmerIds = [...new Set(incompleteInbound.map(r => r.farmer_id))]
-    const farmers = await Farmer.find({ farmer_id: { $in: farmerIds } })
-      .select('farmer_id name')
+  const assignmentFarmerIds = await FarmerOrderAssignment.distinct('farmer_id', {
+    week_id: weekId
+  })
+  const assignedLocalFarmers = assignmentFarmerIds.filter(id => localFarmerIdSet.has(id))
+
+  const inboundLocalFarmers = await LocalFarmerInbound.distinct('farmer_id', { week_id: weekId })
+  const allLocalFarmerIds = [...new Set([...assignedLocalFarmers, ...inboundLocalFarmers])]
+
+  if (allLocalFarmerIds.length > 0) {
+    const paymentRows = await FarmerPayment.find({
+      week_id: weekId,
+      farmer_id: { $in: allLocalFarmerIds },
+      status: { $in: ['paid', 'partial', 'unpaid'] }
+    })
+      .select('farmer_id')
       .lean()
-    const farmerNameById = new Map(farmers.map(f => [f.farmer_id, f.name]))
+    const paidFarmerIds = new Set(paymentRows.map(p => p.farmer_id))
 
-    for (const row of incompleteInbound) {
-      blockers.push({
-        type: 'LOCAL_FARMER_PAYMENT_INCOMPLETE',
-        id: row.inbound_id,
-        label: `${farmerNameById.get(row.farmer_id) ?? 'Local farmer'} — ${row.item_name ?? row.product_id ?? 'inbound'} — payment not recorded`
-      })
+    for (const farmerId of allLocalFarmerIds) {
+      if (!paidFarmerIds.has(farmerId)) {
+        blockers.push({
+          type: 'LOCAL_FARMER_PAYMENT_INCOMPLETE',
+          id: farmerId,
+          label: `${localFarmerNameById.get(farmerId) ?? 'Local farmer'} — payment not recorded`
+        })
+      }
     }
   }
 

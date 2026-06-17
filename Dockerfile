@@ -49,4 +49,7 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
+RUN chown -R node:node /app
+USER node
+
 CMD ["node", "server/server.js"]

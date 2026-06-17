@@ -84,6 +84,8 @@ When a price edit causes a confirmed order's value to exceed the customer's wall
 * \[ASSUMED-confirmed] The operator is the sole person entering the produce list. No concurrent multi-operator entry in MVP.
 * \[ASSUMED-confirmed] Items on the produce list are drawn from a pre-existing product catalogue maintained by the operator. New items not in the catalogue can be added inline during list entry.
 
+**Duplicate check:** When the operator blurs the English or Tamil name field in the add-product form, the system queries the catalogue for similar names. If a match is found, an inline warning is shown. The operator can dismiss and proceed, or cancel and revise. The check fires on both name_en and name_ta fields independently.
+
 ### Challenges
 
 * \[CHALLENGE-Future scope] Farmer message formats vary significantly week to week and across farmers. There is no system assistance for parsing farmer messages in MVP (unlike customer orders, which have the B-Assisted parser). The operator manually reads and transcribes. If farmer message volume grows, this becomes a bottleneck. Post-MVP: extend the B-Assisted parsing approach to farmer availability messages.
@@ -127,6 +129,8 @@ Customer order is stored in the system in Confirmed status. Wallet has been debi
 **Customer requests amendment after orders are locked:** Operator informs customer that the order is closed. Any additions are treated as walk-in purchases on market day. No system change.
 
 **Customer message contains an item not on the produce list:** Parser flags the unrecognised item. Operator informs customer the item is not available this week and removes it from the order before confirming.
+
+**Variant — similarity suggestion:** If a segment was unmatched by the synonym table but the similarity pass found a close candidate, the intake queue displays a suggestion chip ('Did you mean: [product name]?'). The operator can accept the suggestion with one tap (fills the product field) or ignore it and select manually from the dropdown. Accepting a suggestion does not change the confirmation flow — the operator still confirms the order line as normal.
 
 **Customer sends multiple messages for the same order:** Operator consolidates into a single order entry. System does not auto-merge multiple messages from the same customer.]
 
@@ -208,13 +212,13 @@ Customer wallet reflects the top-up credit and, if order was confirmed, the orde
 2. Operator opens the outstation farmer order management screen. \[PWA-OP]
 3. System displays aggregated order summary: per item — item name, unit type, total preorder quantity across all confirmed customer orders. \[SYSTEM]
 4. Operator reviews the aggregated quantities per item. \[PWA-OP]
-5. Operator sets buffer percentage per item (10–30%). Buffer may vary by item and by farmer. \[PWA-OP]
-6. System calculates outgoing quantity per item: Preorder Qty + Buffer Qty. Displays both figures. \[SYSTEM]
+5. Operator sets buffer quantity per item as an absolute amount in the product's unit (e.g. '2 kg', '10 pieces'). Buffer may vary by item. The input field shows the product's unit label alongside the number input. \[PWA-OP]
+6. System calculates outgoing quantity per item: Preorder Qty + Buffer Qty. Displays outgoing quantity in real time as the operator types the buffer value. No percentage conversion is involved. \[SYSTEM]
 7. Operator reviews the consolidated view and manually assigns each item quantity to the relevant outstation farmer(s). If multiple farmers supply the same item, operator decides the split and enters quantities per farmer. \[PWA-OP]
 8. System stores the farmer-level assignment per item. Displays per-farmer order summary: farmer name, items assigned, preorder qty, buffer qty, outgoing qty per item. \[SYSTEM]
 9. Operator reviews each farmer's order summary for accuracy. \[PWA-OP]
-10. Operator exports or copies each farmer's order summary from the PWA. \[PWA-OP]
-11. System generates per-farmer order text formatted for WhatsApp sharing. \[SYSTEM]
+10. Operator copies each farmer's order summary from the PWA. Two copy buttons are available simultaneously: 'Copy in English' and 'Copy in Tamil' (தமிழில் நகல்). The operator selects whichever language the farmer prefers. \[PWA-OP]
+11. System generates two versions of the per-farmer order text — one in English (using name_en) and one in Tamil (using name_ta, falling back to name_en where name_ta is absent). Both are available client-side without a new API call. \[SYSTEM]
 12. Operator sends each outstation farmer their consolidated order via WhatsApp individually. \[WA]
 13. Outstation Farmer receives order and prepares produce for dispatch. \[WA / EXT]
 
@@ -232,8 +236,8 @@ All outstation farmer orders have been set with preorder quantities, buffer quan
 
 ### Assumptions
 
-* \[ASSUMED-confirmed] The operator sends farmer orders manually via WhatsApp — the system generates the text but does not send it automatically. Operator copies and pastes into WhatsApp.
-* \[ASSUMED-confirmed] Buffer is set per item, not as a single percentage across all items. Different items may have different buffers depending on demand uncertainty or farmer reliability.
+* \[ASSUMED-confirmed] The operator sends farmer orders manually via WhatsApp — the system generates the text but does not send it automatically. Operator copies and pastes into WhatsApp. Both Tamil and English versions are generated and available simultaneously, so the operator can send to farmers in their preferred language without navigating away.
+* \[ASSUMED-confirmed] Buffer is set per item as an absolute quantity in the product's own unit, not as a percentage. Different items may have different buffer quantities depending on demand uncertainty or farmer reliability.
 * \[ASSUMED-confirmed] Once farmer orders are sent via WhatsApp, no system confirmation of farmer receipt exists. The operator manages this through direct WhatsApp conversation.
 
 ### Challenges

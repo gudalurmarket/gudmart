@@ -10,7 +10,7 @@ import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 // ─── CUSTOMER ORDER CARD ─────────────────────────────────────────────────────
 
 function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   return (
     <div className="bg-[--color-surface] border border-[--color-border] rounded-lg shadow-sm p-4">
@@ -27,7 +27,7 @@ function CustomerOrderCard ({ customer, onMarkPacked, packingId }) {
             {/* Line items */}
             <div className="flex flex-col gap-1.5 mb-3">
               {order.lineItems.map((item) => {
-                const name = item.nameEn
+                const name = lang === 'ta' && item.nameTa ? item.nameTa : (item.nameEn ?? item.productId)
                 const deliveredQty = item.deliveredQty ?? item.allocatedQty
                 const hasShortfall = item.allocatedQty < item.orderedQty
                 const hasRank = item.fcfsRank !== null && item.fcfsRank !== undefined

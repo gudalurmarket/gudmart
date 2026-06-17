@@ -4,8 +4,10 @@ const { randomUUID } = require('node:crypto')
 const InboundMessage = require('../models/InboundMessage')
 const CustomerOrder = require('../models/CustomerOrder')
 const Customer = require('../models/Customer')
+const ProductCatalogue = require('../models/ProductCatalogue')
 const WeeklyProduceItem = require('../models/WeeklyProduceItem')
 const WalletEngine = require('../modules/walletEngine')
+const { buildSimilaritySuggestion } = require('../modules/parser')
 const {
   AppError,
   CustomerNotFoundError,
@@ -135,10 +137,46 @@ function resolveOrderValuePaise (order) {
 }
 
 /**
+ * @param {string[]} productIds
+ * @returns {Promise<Map<string, { nameEn: string, nameTa: string|null }>>}
+ */
+async function fetchProductNameMap (productIds) {
+  if (productIds.length === 0) return new Map()
+  const products = await ProductCatalogue.find({ product_id: { $in: productIds } })
+    .select('product_id name_en name_ta')
+    .lean()
+  return new Map(products.map(p => [p.product_id, {
+    nameEn: p.name_en,
+    nameTa: p.name_ta || null
+  }]))
+}
+
+/**
+ * @param {object} li
+ * @param {Map<string, { nameEn: string, nameTa: string|null }>} [productById]
+ */
+function mapLineItemResponse (li, productById) {
+  const product = productById?.get(li.product_id)
+  return {
+    lineItemId: li.line_item_id,
+    productId: li.product_id,
+    nameEn: product?.nameEn ?? null,
+    nameTa: product?.nameTa ?? null,
+    orderedQty: li.ordered_qty,
+    deliveredQty: li.delivered_qty,
+    unit: li.unit,
+    pricePerUnit: li.price_per_unit,
+    lineValue: li.line_value,
+    differenceConfirmed: li.difference_confirmed
+  }
+}
+
+/**
  * @param {object} order
  * @param {object} [customer]
+ * @param {Map<string, { nameEn: string, nameTa: string|null }>} [productById]
  */
-function toOrderResponse (order, customer = null) {
+function toOrderResponse (order, customer = null, productById = null) {
   return {
     orderId: order.order_id ?? order.orderId,
     weekId: order.week_id ?? order.weekId,
@@ -156,26 +194,78 @@ function toOrderResponse (order, customer = null) {
     balanceDue: order.balance_due,
     balanceCleared: order.balance_cleared,
     notes: order.notes ?? null,
-    lineItems: (order.line_items ?? []).map(li => ({
-      lineItemId: li.line_item_id,
-      productId: li.product_id,
-      orderedQty: li.ordered_qty,
-      deliveredQty: li.delivered_qty,
-      unit: li.unit,
-      pricePerUnit: li.price_per_unit,
-      lineValue: li.line_value,
-      differenceConfirmed: li.difference_confirmed
-    })),
+    lineItems: (order.line_items ?? []).map(li => mapLineItemResponse(li, productById)),
     createdAt: toIsoString(order.created_at),
     createdBy: order.created_by
   }
 }
 
 /**
+ * @param {string} weekId
+ * @returns {Promise<Array<{ product_id: string, name_en: string, name_ta: string|null }>>}
+ */
+async function loadProduceListForSuggestions (weekId) {
+  const produceRows = await WeeklyProduceItem.find({ week_id: weekId })
+    .sort({ display_order: 1 })
+    .lean()
+
+  if (produceRows.length === 0) return []
+
+  const productIds = produceRows.map((row) => row.product_id)
+  const products = await ProductCatalogue.find({
+    product_id: { $in: productIds },
+    active: true
+  })
+    .select('product_id name_en name_ta')
+    .lean()
+
+  const productById = new Map(products.map((p) => [p.product_id, p]))
+
+  return produceRows.map((row) => {
+    const product = productById.get(row.product_id)
+    return {
+      product_id: row.product_id,
+      name_en: product?.name_en ?? row.product_id,
+      name_ta: product?.name_ta ?? null
+    }
+  })
+}
+
+/**
+ * @param {object} item — lean inbound parsed_items subdocument
+ * @param {Array<{ product_id: string, name_en: string, name_ta: string|null }>} produceList
+ */
+function mapParsedItemWithSuggestion (item, produceList) {
+  const productId = item.product_id ?? null
+  const base = {
+    rawText: item.raw_text,
+    productId,
+    rawProductText: item.raw_product_text ?? null,
+    quantity: item.quantity ?? null,
+    unit: item.unit ?? null,
+    confidence: item.confidence
+  }
+
+  if (productId != null) {
+    return {
+      ...base,
+      suggestedProductId: null,
+      suggestedProductName: null,
+      suggestedProductNameTa: null,
+      similarityScore: null
+    }
+  }
+
+  const suggestion = buildSimilaritySuggestion(item.raw_product_text, produceList)
+  return { ...base, ...suggestion }
+}
+
+/**
  * @param {object} msg
  * @param {Map<string, string>} customerNames
+ * @param {Array<{ product_id: string, name_en: string, name_ta: string|null }>} produceList
  */
-function toIntakeMessage (msg, customerNames) {
+function toIntakeMessage (msg, customerNames, produceList) {
   return {
     messageId: msg.message_id,
     senderPhone: msg.sender_phone,
@@ -187,14 +277,9 @@ function toIntakeMessage (msg, customerNames) {
     mediaType: msg.media_type,
     fcfsTimestamp: toIsoString(msg.fcfs_timestamp),
     parseStatus: msg.parse_status,
-    parsedItems: (msg.parsed_items ?? []).map(item => ({
-      rawText: item.raw_text,
-      productId: item.product_id ?? null,
-      rawProductText: item.raw_product_text ?? null,
-      quantity: item.quantity ?? null,
-      unit: item.unit ?? null,
-      confidence: item.confidence
-    })),
+    parsedItems: (msg.parsed_items ?? []).map((item) =>
+      mapParsedItemWithSuggestion(item, produceList)
+    ),
     queueStatus: msg.queue_status,
     operatorNotes: msg.operator_notes ?? null,
     linkedOrderId: msg.linked_order_id ?? null
@@ -305,9 +390,10 @@ async function ordersAndIntakeRoutes (fastify) {
     const customerNames = new Map(
       customers.map(c => [c.customer_id, c.name])
     )
+    const produceList = await loadProduceListForSuggestions(weekId)
 
     return {
-      messages: messages.map(msg => toIntakeMessage(msg, customerNames))
+      messages: messages.map((msg) => toIntakeMessage(msg, customerNames, produceList))
     }
   })
 
@@ -491,9 +577,17 @@ async function ordersAndIntakeRoutes (fastify) {
         .lean()
       : []
     const customerById = new Map(customers.map(c => [c.customer_id, c]))
+    const productIds = [
+      ...new Set(
+        orders.flatMap(o => (o.line_items ?? []).map(li => li.product_id).filter(Boolean))
+      )
+    ]
+    const productById = await fetchProductNameMap(productIds)
 
     return {
-      orders: orders.map(o => toOrderResponse(o, customerById.get(o.customer_id)))
+      orders: orders.map(o =>
+        toOrderResponse(o, customerById.get(o.customer_id), productById)
+      )
     }
   })
 
@@ -852,6 +946,8 @@ async function ordersAndIntakeRoutes (fastify) {
       .lean()
 
     const orderPlain = typeof order.toObject === 'function' ? order.toObject() : order
+    const productIds = (orderPlain.line_items ?? []).map(li => li.product_id).filter(Boolean)
+    const productById = await fetchProductNameMap([...new Set(productIds)])
     return toOrderResponse(
       {
         ...orderPlain,
@@ -860,7 +956,8 @@ async function ordersAndIntakeRoutes (fastify) {
         wallet_txn_id: debitOutcome.debitTxnId,
         balance_due: 0
       },
-      customer
+      customer,
+      productById
     )
   })
 

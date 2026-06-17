@@ -1,6 +1,23 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 
+const FIREBASE_KEYS = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+]
+
+/** @returns {string[]} */
+export function missingFirebaseEnvKeys () {
+  return FIREBASE_KEYS.filter((key) => {
+    const value = import.meta.env[key]
+    return typeof value !== 'string' || value.trim().length === 0
+  })
+}
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -10,5 +27,9 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+const missing = missingFirebaseEnvKeys()
+
+/** @type {import('firebase/auth').Auth | undefined} */
+export const auth = missing.length === 0
+  ? getAuth(initializeApp(firebaseConfig))
+  : undefined

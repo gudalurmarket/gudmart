@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Gudmart">
+  <rect width="512" height="512" rx="96" fill="#3B6E2F"/>
+  <circle cx="256" cy="256" r="150" fill="#ffffff" opacity="0.12"/>
+  <path d="M166 294c0-52 42-94 94-94h46v32h-46c-34 0-62 28-62 62 0 34 28 62 62 62h20c34 0 62-28 62-62v-10h32v10c0 52-42 94-94 94h-20c-52 0-94-42-94-94z" fill="#ffffff"/>
+  <path d="M263 118c25 10 43 33 48 60-31 5-58-1-79-19-20-20-25-48-18-79 20 6 37 18 49 38z" fill="#9FE870"/>
+</svg>

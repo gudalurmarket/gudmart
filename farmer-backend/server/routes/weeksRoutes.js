@@ -38,24 +38,29 @@ function toIsoString (value) {
 
 /**
  * @param {object} week
+ * @param {{ includeBalances?: boolean }} [opts]
  */
-function toWeekListItem (week) {
-  return {
+function toWeekListItem (week, { includeBalances = true } = {}) {
+  const item = {
     weekId: week.week_id,
     marketDate: toIsoString(week.market_date),
     state: week.state,
-    openingBalanceCash: week.opening_balance_cash,
-    openingBalanceBank: week.opening_balance_bank,
     closedAt: week.closed_at ? toIsoString(week.closed_at) : null
   }
+  if (includeBalances) {
+    item.openingBalanceCash = week.opening_balance_cash
+    item.openingBalanceBank = week.opening_balance_bank
+  }
+  return item
 }
 
 /**
  * @param {object} week
+ * @param {{ includeBalances?: boolean }} [opts]
  */
-function toWeekDetail (week) {
+function toWeekDetail (week, opts = {}) {
   return {
-    ...toWeekListItem(week),
+    ...toWeekListItem(week, opts),
     stateHistory: (week.state_history ?? []).map(entry => ({
       fromState: entry.from_state,
       toState: entry.to_state,
@@ -195,7 +200,8 @@ async function weeksRoutes (fastify) {
         { weekId: request.params.weekId }
       )
     }
-    return toWeekDetail(week)
+    const includeBalances = request.user.role !== 'volunteer'
+    return toWeekDetail(week, { includeBalances })
   })
 
   fastify.patch('/weeks/:weekId/state', {

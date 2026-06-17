@@ -8,6 +8,11 @@ import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import { enqueueEntry, loadQueue, flushQueue } from '../lib/deliverySync'
 
+/** Round a qty difference to one decimal place (avoids float display noise). */
+function qtyVariance (delivered, expected) {
+  return Number((Number(delivered) - Number(expected)).toFixed(1))
+}
+
 /** Map GET /delivery assignment rows to volunteer card fields. */
 function normalizeDeliveryAssignment (assignment) {
   return {
@@ -65,7 +70,7 @@ function DeliveryItemRow ({ assignment, lang, onSave, pendingQty, isSaving, last
   // Variance display — only after a successful server save (deliveredQty != null)
   let varianceEl = null
   if (deliveredQty != null) {
-    const diff = deliveredQty - expectedQty
+    const diff = qtyVariance(deliveredQty, expectedQty)
     if (diff === 0) {
       varianceEl = (
         <p className="mt-2 text-sm font-medium text-[--color-success]">
@@ -75,13 +80,13 @@ function DeliveryItemRow ({ assignment, lang, onSave, pendingQty, isSaving, last
     } else if (diff < 0) {
       varianceEl = (
         <p className="mt-2 text-sm font-medium text-[--color-error]">
-          ⚠ {t('delivery.shortfall_flag')}: {Math.abs(diff)} {unitLabel}
+          ⚠ {t('delivery.shortfall_flag')}: {Math.abs(diff).toFixed(1)} {unitLabel}
         </p>
       )
     } else {
       varianceEl = (
         <p className="mt-2 text-sm font-medium text-[--color-warning]">
-          ↑ {t('delivery.overdelivery_flag')}: {diff} {unitLabel}
+          ↑ {t('delivery.overdelivery_flag')}: {diff.toFixed(1)} {unitLabel}
         </p>
       )
     }

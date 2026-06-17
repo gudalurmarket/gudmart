@@ -461,9 +461,8 @@ describe('Full week lifecycle — setup → closed', () => {
         farmerId: OUT_FARMER_ID,
         productId: TOMATO_ID,
         preorderQty: ORDER_TOMATO_QTY,
-        bufferPct: 10,
         bufferQty: 0.2,
-        outgoingQty: 2.2
+        assignedQty: 2.2
       })
 
     expect(res.status).toBe(200)
@@ -475,6 +474,9 @@ describe('Full week lifecycle — setup → closed', () => {
     expect(assignment).not.toBeNull()
     expect(assignment.farmer_id).toBe(OUT_FARMER_ID)
     expect(assignment.product_id).toBe(TOMATO_ID)
+    expect(assignment.buffer_pct).toBeNull()
+    expect(assignment.buffer_qty).toBe(0.2)
+    expect(assignment.outgoing_qty).toBe(2.2)
   })
 
   // ─── Step 6 · Delivery ────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ function SearchBar ({ value, onChange }) {
 // ─── DISPATCH ORDER CARD ──────────────────────────────────────────────────────
 
 function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const isDispatched = order.status === 'dispatched'
   const isThisDispatching = dispatchingId === order.orderId
   const anyDispatching = dispatchingId !== null
@@ -77,7 +77,7 @@ function DispatchOrderCard ({ order, onMarkDispatched, dispatchingId }) {
             key={item.productId}
             className="flex items-center justify-between text-sm text-[--color-text-secondary]"
           >
-            <span>{item.nameEn}</span>
+            <span>{lang === 'ta' && item.nameTa ? item.nameTa : (item.nameEn ?? item.productId)}</span>
             <span className="shrink-0 ml-2 text-[--color-text-secondary]">
               {item.deliveredQty} {item.unit}
             </span>

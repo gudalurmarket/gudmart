@@ -5,6 +5,7 @@ const { parseMessage, getSynonymCache } = require('../modules/parser')
 const { pushToAllClients } = require('../modules/sse')
 const InboundMessage = require('../models/InboundMessage')
 const Customer = require('../models/Customer')
+const Farmer = require('../models/Farmer')
 const MarketWeek = require('../models/MarketWeek')
 const WeeklyProduceItem = require('../models/WeeklyProduceItem')
 const ProductCatalogue = require('../models/ProductCatalogue')
@@ -149,11 +150,28 @@ async function processWebhookPayload (log, synonymCache, payload) {
   }
 
   let customer_id = null
+  let farmer_id = null
+  let sender_type = 'unknown'
   let parse_status = 'manual_required'
 
   const customer = await Customer.findOne({ phone: sender_phone, active: true }).lean()
   if (customer) {
     customer_id = customer.customer_id
+    farmer_id = null
+    sender_type = 'customer'
+  } else {
+    const farmer = await Farmer.findOne({ phone: sender_phone, active: true }).lean()
+    if (farmer) {
+      customer_id = null
+      farmer_id = farmer.farmer_id
+      sender_type = 'farmer'
+      parse_status = 'farmer_availability'
+    } else {
+      customer_id = null
+      farmer_id = null
+      sender_type = 'unknown'
+      parse_status = 'unknown_sender'
+    }
   }
 
   let week_id = null
@@ -165,14 +183,18 @@ async function processWebhookPayload (log, synonymCache, payload) {
 
   if (activeWeek) {
     week_id = activeWeek.week_id
-    produceList = await loadProduceList(week_id)
-  } else {
+    if (sender_type === 'customer') {
+      produceList = await loadProduceList(week_id)
+    }
+  } else if (sender_type === 'customer') {
     parse_status = 'no_active_week'
   }
 
   let parsed_items = []
 
-  if (media_type === 'audio') {
+  if (sender_type === 'farmer') {
+    parsed_items = []
+  } else if (media_type === 'audio') {
     parse_status = 'voice_note'
     parsed_items = []
   } else if (media_type === 'image') {
@@ -182,7 +204,12 @@ async function processWebhookPayload (log, synonymCache, payload) {
     const parsed = parseMessage(body, produceList, synonymCache)
     parsed_items = toInboundParsedItems(parsed)
     parse_status = highestParserConfidence(parsed)
-  } else if (parse_status !== 'no_active_week') {
+  } else if (sender_type === 'unknown' && parse_status !== 'unknown_sender') {
+    if (parse_status !== 'no_active_week') {
+      parse_status = 'manual_required'
+    }
+    parsed_items = []
+  } else if (sender_type === 'customer' && parse_status !== 'no_active_week') {
     parse_status = 'manual_required'
     parsed_items = []
   }
@@ -192,6 +219,8 @@ async function processWebhookPayload (log, synonymCache, payload) {
       message_id,
       sender_phone,
       customer_id,
+      farmer_id,
+      sender_type,
       week_id,
       body,
       media_type,

@@ -7,7 +7,7 @@ import { TransitionGateBlockedError, apiGet, apiPatch, apiPost } from '../../sha
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { PAYMENT_CHANNELS, UNIT_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
-import { formatINROptional, paiseToRupees, parseINR, rupeesToPaise } from '../../shared/lib/paise.js'
+import { formatINR, formatINROptional, paiseToRupees, parseINR, rupeesToPaise } from '../../shared/lib/paise.js'
 
 const TOAST_DISMISS_MS = 4000
 const FCFS_TOAST_DISMISS_MS = 6000
@@ -41,37 +41,33 @@ function unitStr(unit, t) {
   return key ? t(key) : (unit ?? '')
 }
 
-function groupLocalFarmerItems(items) {
-  const map = new Map()
-  for (const item of items) {
-    if (!map.has(item.farmerId)) {
-      map.set(item.farmerId, {
-        farmerId: item.farmerId,
-        farmerName: item.farmerName,
-        paymentId: item.paymentId ?? null,
-        items: [],
-      })
-    }
-    map.get(item.farmerId).items.push(item)
-  }
-  return [...map.values()]
+function localizedProductName (item, lang) {
+  if (lang === 'ta' && item.nameTa) return item.nameTa
+  return item.nameEn ?? item.productName ?? item.productId ?? ''
+}
+
+function surplusItemsForGroup (farmerGroup) {
+  return farmerGroup.surplusItems ?? farmerGroup.items ?? []
 }
 
 function initSoldQtyDrafts(farmerGroups) {
   const drafts = {}
   for (const group of farmerGroups) {
-    for (let idx = 0; idx < group.items.length; idx++) {
-      drafts[`${group.farmerId}_${idx}`] = String(group.items[idx].soldQty ?? 0)
+    const items = surplusItemsForGroup(group)
+    for (let idx = 0; idx < items.length; idx++) {
+      drafts[`${group.farmerId}_${idx}`] = String(items[idx].soldQty ?? 0)
     }
   }
   return drafts
 }
 
 function computeLocalTotalDue(farmerGroup, soldQtyDrafts) {
-  return farmerGroup.items.reduce((sum, item, idx) => {
+  const preorderComponent = farmerGroup.preorderComponent ?? 0
+  const surplusComponent = surplusItemsForGroup(farmerGroup).reduce((sum, item, idx) => {
     const qty = Number(soldQtyDrafts[`${farmerGroup.farmerId}_${idx}`] ?? item.soldQty ?? 0)
     return sum + Math.floor(qty * (item.pricePerUnit ?? 0))
   }, 0)
+  return preorderComponent + surplusComponent
 }
 
 // ── StatPill ──────────────────────────────────────────────────────────────────
@@ -91,7 +87,7 @@ function StatPill({ count, total, labelKey, amber, t }) {
 
 // ── DifferenceCard ────────────────────────────────────────────────────────────
 
-function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfirm, t }) {
+function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfirm, t, lang }) {
   const diffQty = diff.differenceQty ?? 0
   const isShortfall = diffQty < 0
   const isOverdelivery = diffQty > 0
@@ -105,7 +101,7 @@ function DifferenceCard({ diff, isReconciliation, confirming, errorKey, onConfir
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-medium text-[--color-text-primary]">{diff.customerName}</p>
-          <p className="text-xs text-[--color-text-secondary]">{diff.productName ?? diff.productId}</p>
+          <p className="text-xs text-[--color-text-secondary]">{localizedProductName(diff, lang)}</p>
         </div>
         {isShortfall && (
           <span className="rounded-full bg-[--color-warning-light] px-2.5 py-0.5 text-xs font-medium text-[--color-warning]">
@@ -342,6 +338,13 @@ function LocalFarmerPaymentCard({
   const canEditSoldQty = isReconciliation && !isPaid
   const statusClass = isPaid ? 'bg-[--color-success-light] text-[--color-success]' : 'bg-[--color-error-light] text-[--color-error]'
   const form = formState ?? { amountInput: String(paiseToRupees(Math.max(0, totalDuePaise))), channel: PAYMENT_CHANNELS.CASH }
+  const preorderItems = farmerGroup.preorderItems ?? []
+  const surplusItems = surplusItemsForGroup(farmerGroup)
+  const preorderComponent = farmerGroup.preorderComponent ?? 0
+  const surplusComponent = surplusItems.reduce((sum, item, idx) => {
+    const qty = Number(soldQtyDrafts[`${farmerGroup.farmerId}_${idx}`] ?? item.soldQty ?? 0)
+    return sum + Math.floor(qty * (item.pricePerUnit ?? 0))
+  }, 0)
 
   return (
     <div className="mb-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-4">
@@ -350,7 +353,7 @@ function LocalFarmerPaymentCard({
         <div>
           <p className="font-semibold text-[--color-text-primary]">{farmerGroup.farmerName}</p>
           <p className="mt-0.5 text-sm text-[--color-text-secondary]">
-            {t('reconciliation.amount_due_label')}: {formatINROptional(totalDuePaise)}
+            {t('label.total_due')}: {formatINR(Math.max(0, totalDuePaise))}
           </p>
         </div>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClass}`}>
@@ -358,54 +361,102 @@ function LocalFarmerPaymentCard({
         </span>
       </div>
 
-      {/* Items table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
-              <th className="pb-2 pr-3 font-medium">{t('market_day.item_label')}</th>
-              <th className="pb-2 pr-3 font-medium">{t('market_day.inbound_qty_label')}</th>
-              <th className="pb-2 pr-3 font-medium">{t('reconciliation.sold_qty_label')}</th>
-              <th className="pb-2 pr-3 font-medium">{t('reconciliation.unsold_qty_label')}</th>
-              <th className="pb-2 pr-3 font-medium">{t('field.unit')}</th>
-              <th className="pb-2 text-right font-medium">{t('summary.total_label')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {farmerGroup.items.map((item, idx) => {
-              const draftKey = `${farmerGroup.farmerId}_${idx}`
-              const soldQtyStr = soldQtyDrafts[draftKey] ?? String(item.soldQty ?? 0)
-              const soldQty = Math.max(0, Number(soldQtyStr) || 0)
-              const unsoldQty = Math.max(0, (item.inboundQty ?? 0) - soldQty)
-              const lineValue = Math.floor(soldQty * (item.pricePerUnit ?? 0))
-
-              return (
-                <tr key={draftKey} className="border-b border-[--color-border] last:border-0">
-                  <td className="py-2 pr-3 text-[--color-text-primary]">{item.itemName}</td>
-                  <td className="py-2 pr-3 text-[--color-text-secondary]">{item.inboundQty ?? 0}</td>
-                  <td className="py-2 pr-3">
-                    {canEditSoldQty ? (
-                      <input
-                        type="number"
-                        min={0}
-                        max={item.inboundQty ?? undefined}
-                        step={1}
-                        value={soldQtyStr}
-                        onChange={(e) => onSoldQtyChange(draftKey, e.target.value)}
-                        className="w-20 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <span className="text-[--color-text-secondary]">{soldQty}</span>
-                    )}
-                  </td>
-                  <td className="py-2 pr-3 text-[--color-text-secondary]">{unsoldQty}</td>
-                  <td className="py-2 pr-3 text-[--color-text-secondary]">{unitStr(item.unit, t)}</td>
-                  <td className="py-2 text-right text-[--color-text-secondary]">{formatINROptional(lineValue)}</td>
+      {preorderComponent > 0 && (
+        <div className="mb-4">
+          <h4 className="mb-2 text-sm font-semibold text-[--color-primary]">
+            {t('label.preorder_delivery')}
+          </h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
+                  <th className="pb-2 pr-3 font-medium">{t('market_day.item_label')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('label.ordered_qty')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('label.delivered_qty')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('field.unit')}</th>
+                  <th className="pb-2 text-right font-medium">{t('summary.total_label')}</th>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {preorderItems.map((item) => (
+                  <tr key={item.assignmentId ?? item.productId} className="border-b border-[--color-border] last:border-0">
+                    <td className="py-2 pr-3 text-[--color-text-primary]">{item.itemName}</td>
+                    <td className="py-2 pr-3 text-[--color-text-secondary]">{item.orderedQty ?? 0}</td>
+                    <td className="py-2 pr-3 text-[--color-text-secondary]">{item.deliveredQty ?? 0}</td>
+                    <td className="py-2 pr-3 text-[--color-text-secondary]">{unitStr(item.unit, t)}</td>
+                    <td className="py-2 text-right text-[--color-text-secondary]">
+                      {formatINR(item.amountDue ?? 0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-right text-sm font-medium text-[--color-text-primary]">
+            {formatINR(preorderComponent)}
+          </p>
+        </div>
+      )}
+
+      <div className="mb-3">
+        <h4 className="mb-2 text-sm font-semibold text-[--color-primary]">
+          {t('label.market_day_surplus')}
+        </h4>
+        {surplusItems.length === 0 ? (
+          <p className="text-sm text-[--color-text-secondary]">{t('market_day.no_inbound_records')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[--color-border] text-xs text-[--color-text-secondary]">
+                  <th className="pb-2 pr-3 font-medium">{t('market_day.item_label')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('market_day.inbound_qty_label')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('reconciliation.sold_qty_label')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('reconciliation.unsold_qty_label')}</th>
+                  <th className="pb-2 pr-3 font-medium">{t('field.unit')}</th>
+                  <th className="pb-2 text-right font-medium">{t('summary.total_label')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {surplusItems.map((item, idx) => {
+                  const draftKey = `${farmerGroup.farmerId}_${idx}`
+                  const soldQtyStr = soldQtyDrafts[draftKey] ?? String(item.soldQty ?? 0)
+                  const soldQty = Math.max(0, Number(soldQtyStr) || 0)
+                  const unsoldQty = Math.max(0, (item.inboundQty ?? 0) - soldQty)
+                  const lineValue = Math.floor(soldQty * (item.pricePerUnit ?? 0))
+
+                  return (
+                    <tr key={draftKey} className="border-b border-[--color-border] last:border-0">
+                      <td className="py-2 pr-3 text-[--color-text-primary]">{item.itemName}</td>
+                      <td className="py-2 pr-3 text-[--color-text-secondary]">{item.inboundQty ?? 0}</td>
+                      <td className="py-2 pr-3">
+                        {canEditSoldQty ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={item.inboundQty ?? undefined}
+                            step={1}
+                            value={soldQtyStr}
+                            onChange={(e) => onSoldQtyChange(draftKey, e.target.value)}
+                            className="w-20 min-h-[44px] rounded-lg border border-[--color-border] px-2 py-1 text-sm"
+                          />
+                        ) : (
+                          <span className="text-[--color-text-secondary]">{soldQty}</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-[--color-text-secondary]">{unsoldQty}</td>
+                      <td className="py-2 pr-3 text-[--color-text-secondary]">{unitStr(item.unit, t)}</td>
+                      <td className="py-2 text-right text-[--color-text-secondary]">{formatINR(lineValue)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 text-right text-sm font-medium text-[--color-text-primary]">
+          {formatINR(surplusComponent)}
+        </p>
       </div>
 
       {/* Payment form — state-gated, not yet paid */}
@@ -464,7 +515,7 @@ function LocalFarmerPaymentCard({
 
 // ── DeliveryEditRow ───────────────────────────────────────────────────────────
 
-function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, onDraftChange, onSave, t }) {
+function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, onDraftChange, onSave, t, lang }) {
   const savedQty = assignment.deliveredQty ?? 0
   const parsedDraft = draftQty === '' ? null : Number(draftQty)
   const dirty =
@@ -478,7 +529,9 @@ function DeliveryEditRow({ assignment, editable, draftQty, saving, rowErrorKey, 
     <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-[--color-text-primary]">{assignment.productName}</p>
+          <p className="font-medium text-[--color-text-primary]">
+            {localizedProductName(assignment, lang)}
+          </p>
           <p className="text-xs text-[--color-text-secondary]">{assignment.farmerName}</p>
           <p className="mt-1 text-sm text-[--color-text-secondary]">
             {t('delivery.expected_qty_label')}: {assignment.outgoingQty ?? 0} {unitStr(unit, t)}
@@ -532,6 +585,7 @@ export default function Reconciliation() {
   const [marketDate, setMarketDate] = useState(null)
   const [priceDifferences, setPriceDifferences] = useState([])
   const [localFarmerItems, setLocalFarmerItems] = useState([])
+  const [localFarmerPayments, setLocalFarmerPayments] = useState([])
   const [payments, setPayments] = useState([])
   const [assignments, setAssignments] = useState([])
 
@@ -585,8 +639,8 @@ export default function Reconciliation() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const localFarmerGroups = useMemo(
-    () => groupLocalFarmerItems(localFarmerItems),
-    [localFarmerItems],
+    () => localFarmerPayments,
+    [localFarmerPayments],
   )
 
   const isReconciliation = currentState === WEEK_STATES.RECONCILIATION
@@ -606,6 +660,7 @@ export default function Reconciliation() {
   const applyReconData = useCallback((data) => {
     setPriceDifferences(data.priceDifferences ?? [])
     setLocalFarmerItems(data.localFarmerItems ?? [])
+    setLocalFarmerPayments(data.localFarmerPayments ?? [])
   }, [])
 
   const loadWeekData = useCallback(
@@ -618,8 +673,10 @@ export default function Reconciliation() {
 
       const diffs = reconData.priceDifferences ?? []
       const lfItems = reconData.localFarmerItems ?? []
+      const lfPayments = reconData.localFarmerPayments ?? []
       setPriceDifferences(diffs)
       setLocalFarmerItems(lfItems)
+      setLocalFarmerPayments(lfPayments)
 
       setPayments(paymentsData.payments ?? [])
 
@@ -631,8 +688,7 @@ export default function Reconciliation() {
       }
       setDeliveredDrafts(drafts)
 
-      const groups = groupLocalFarmerItems(lfItems)
-      setSoldQtyDrafts(initSoldQtyDrafts(groups))
+      setSoldQtyDrafts(initSoldQtyDrafts(lfPayments))
     },
     [],
   )
@@ -649,6 +705,7 @@ export default function Reconciliation() {
         setMarketDate(null)
         setPriceDifferences([])
         setLocalFarmerItems([])
+        setLocalFarmerPayments([])
         setPayments([])
         setAssignments([])
         return
@@ -810,8 +867,15 @@ export default function Reconciliation() {
       }
 
       const isCash = formState.channel === PAYMENT_CHANNELS.CASH
-      const items = farmerGroup.items
-      const totalDue = items.reduce((s, it) => s + (it.amountDue ?? 0), 0)
+      const items = surplusItemsForGroup(farmerGroup)
+
+      if (items.length === 0) {
+        setLocalFarmerPaidState((prev) => ({ ...prev, [farmerGroup.farmerId]: true }))
+        showToast('toast.local_farmer_payment_saved')
+        return
+      }
+
+      const totalDue = computeLocalTotalDue(farmerGroup, soldQtyDrafts)
 
       // Distribute total amount proportionally across each inbound item.
       // The gate validator checks payment_amount_cash + payment_amount_bank > 0
@@ -865,7 +929,7 @@ export default function Reconciliation() {
         setSavingLocalFarmerId(null)
       }
     },
-    [weekId, showToast],
+    [weekId, showToast, soldQtyDrafts],
   )
 
   // ── Tab D handlers ────────────────────────────────────────────────────────
@@ -1059,6 +1123,7 @@ export default function Reconciliation() {
                       errorKey={diffErrors[diff.diffId ?? diff._id] ?? null}
                       onConfirm={handleConfirmDiff}
                       t={t}
+                      lang={lang}
                     />
                   ))}
 
@@ -1088,6 +1153,7 @@ export default function Reconciliation() {
                               errorKey={null}
                               onConfirm={() => {}}
                               t={t}
+                              lang={lang}
                             />
                           ))}
                         </div>
@@ -1195,6 +1261,7 @@ export default function Reconciliation() {
                     onDraftChange={handleDeliveredDraftChange}
                     onSave={handleSaveDeliveredQty}
                     t={t}
+                    lang={lang}
                   />
                 ))
               )}

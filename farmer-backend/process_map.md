@@ -143,7 +143,7 @@ Week is in Orders Locked state. All confirmed customer orders are recorded. Wall
 
 |#|Actor|Action|Channel|Type|System Response|
 |-|-|-|-|-|-|
-|3.1|Operator|Sets buffer percentage per outstation farmer-item (10–30%)|PWA-OP|ENTRY|System calculates: Outgoing Qty = Preorder Qty + Buffer Qty; displays per item|
+|3.1|Operator|Sets buffer quantity per item as an absolute quantity in the product's unit (e.g. 2 kg, 5 pieces)|PWA-OP|ENTRY|System calculates: Outgoing Qty = Preorder Qty + Buffer Qty; displays per item|
 |3.2|Operator|Reviews consolidated outstation farmer-specific order view|PWA-OP|MANUAL|System displays per-farmer order: items, preorder qty, buffer qty, outgoing qty|
 |3.3|Operator|Manually decides how to split aggregated quantity across multiple outstation farmers supplying the same item|PWA-OP|ENTRY|System records farmer-level assignment per item; does not auto-split|
 |3.4|Operator|Exports or copies farmer-specific order summary|PWA-OP|ENTRY|System generates per-farmer order text for WhatsApp sharing|

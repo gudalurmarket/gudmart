@@ -9,6 +9,12 @@ const ProductCatalogue = require('../models/ProductCatalogue')
 const FarmerPayment = require('../models/FarmerPayment')
 const Farmer = require('../models/Farmer')
 const LocalFarmerInbound = require('../models/LocalFarmerInbound')
+const FarmerOrderAssignment = require('../models/FarmerOrderAssignment')
+const WeeklyProduceItem = require('../models/WeeklyProduceItem')
+const {
+  computePreorderComponent,
+  computeSurplusComponent
+} = require('../modules/bootstrapFarmerPayments')
 const WeeklySummary = require('../models/WeeklySummary')
 const WalletEngine = require('../modules/walletEngine')
 const { bootstrapFarmerPayments } = require('../modules/bootstrapFarmerPayments')
@@ -18,6 +24,10 @@ const {
   ActionNotAllowedError,
   MarketWeekNotFoundError
 } = require('../lib/errors')
+const { bestMatch } = require('../lib/similarity')
+
+const CATALOGUE_SEARCH_SCORE_THRESHOLD = 0.6
+const CATALOGUE_SEARCH_MAX_RESULTS = 5
 
 const ORDER_UNITS = ['kg', 'piece', 'bunch', '100g']
 const PAYMENT_STATUSES = ['unpaid', 'partial', 'paid']
@@ -113,7 +123,27 @@ function toLocalFarmerPaymentItem (row, productNameById) {
     soldQty,
     unsoldQty: inboundQty - soldQty,
     pricePerUnit: row.price_per_unit,
-    amountDue: soldQty * row.price_per_unit
+    amountDue: Math.round(soldQty * row.price_per_unit)
+  }
+}
+
+/**
+ * @param {object} assignment
+ * @param {Map<string, string>} productNameById
+ * @param {Map<string, number>} priceByProduct
+ */
+function toPreorderAssignmentItem (assignment, productNameById, priceByProduct) {
+  const pricePerUnit = priceByProduct.get(assignment.product_id) ?? 0
+  const deliveredQty = assignment.delivered_qty
+  return {
+    assignmentId: assignment.assignment_id,
+    productId: assignment.product_id,
+    itemName: productNameById.get(assignment.product_id) ?? assignment.product_id,
+    orderedQty: assignment.outgoing_qty,
+    deliveredQty,
+    unit: null,
+    pricePerUnit,
+    amountDue: Math.round(deliveredQty * pricePerUnit)
   }
 }
 
@@ -165,26 +195,42 @@ async function reconciliationAndMoreRoutes (fastify) {
       .lean()
 
     const customerIds = [...new Set(orders.map(o => o.customer_id))]
-    const [customers, products, inboundRows, paymentRows, farmers] = await Promise.all([
-      Customer.find({ customer_id: { $in: customerIds } })
-        .select('customer_id name')
-        .lean(),
-      ProductCatalogue.find({ active: true }).select('product_id name_en').lean(),
-      LocalFarmerInbound.find({ week_id: weekId }).lean(),
-      FarmerPayment.find({ week_id: weekId }).lean(),
-      Farmer.find({ active: true }).select('farmer_id name farmer_type').lean()
-    ])
+    const [customers, products, inboundRows, paymentRows, farmers, assignments, produceItems] =
+      await Promise.all([
+        Customer.find({ customer_id: { $in: customerIds } })
+          .select('customer_id name')
+          .lean(),
+        ProductCatalogue.find({ active: true }).select('product_id name_en name_ta').lean(),
+        LocalFarmerInbound.find({ week_id: weekId }).lean(),
+        FarmerPayment.find({ week_id: weekId }).lean(),
+        Farmer.find({ active: true }).select('farmer_id name farmer_type').lean(),
+        FarmerOrderAssignment.find({ week_id: weekId }).lean(),
+        WeeklyProduceItem.find({ week_id: weekId }).select('product_id price_per_unit unit').lean()
+      ])
 
     const customerNameById = new Map(customers.map(c => [c.customer_id, c.name]))
-    const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
+    const productById = new Map(products.map(p => [p.product_id, {
+      nameEn: p.name_en,
+      nameTa: p.name_ta || null
+    }]))
+    const productNameById = new Map(
+      [...productById.entries()].map(([id, names]) => [id, names.nameEn])
+    )
     const farmerNameById = new Map(farmers.map(f => [f.farmer_id, f.name]))
     const farmerTypeById = new Map(farmers.map(f => [f.farmer_id, f.farmer_type]))
+    const priceByProduct = new Map(produceItems.map(p => [p.product_id, p.price_per_unit]))
+    const unitByProduct = new Map(produceItems.map(p => [p.product_id, p.unit]))
+    const localFarmerIdSet = new Set(
+      farmers.filter(f => f.farmer_type === 'local').map(f => f.farmer_id)
+    )
 
     const priceDifferences = []
     for (const order of orders) {
       for (const li of order.line_items ?? []) {
         if (li.delivered_qty === li.ordered_qty) continue
         const differenceQty = li.delivered_qty - li.ordered_qty
+        const product = productById.get(li.product_id)
+        const nameEn = product?.nameEn ?? li.product_id
         priceDifferences.push({
           diffId: `${order.order_id}:${li.line_item_id}`,
           orderId: order.order_id,
@@ -192,7 +238,9 @@ async function reconciliationAndMoreRoutes (fastify) {
           customerId: order.customer_id,
           customerName: customerNameById.get(order.customer_id) ?? order.customer_id,
           productId: li.product_id,
-          productName: productNameById.get(li.product_id) ?? li.product_id,
+          productName: nameEn,
+          nameEn,
+          nameTa: product?.nameTa ?? null,
           orderedQty: li.ordered_qty,
           deliveredQty: li.delivered_qty,
           differenceQty,
@@ -208,17 +256,49 @@ async function reconciliationAndMoreRoutes (fastify) {
       farmerId: row.farmer_id,
       farmerName: farmerNameById.get(row.farmer_id) ?? row.farmer_id,
       productId: row.product_id ?? null,
-      itemName: row.item_name ?? null,
+      itemName: row.item_name ??
+        (row.product_id ? productNameById.get(row.product_id) : null) ??
+        null,
       inboundQty: row.inbound_qty,
       soldQty: row.sold_qty,
       unit: row.unit,
       pricePerUnit: row.price_per_unit,
-      amountDue: Math.round((row.inbound_qty - row.sold_qty) * row.price_per_unit),
+      amountDue: Math.round(row.sold_qty * row.price_per_unit),
       amountPaid: row.amount_paid ?? null,
       paymentChannel: row.payment_channel ?? null,
       paymentRecorded: row.payment_recorded_at != null ||
         (row.amount_paid != null && row.payment_channel != null)
     }))
+
+    const preorderByFarmer = new Map()
+    for (const asgn of assignments) {
+      if (!localFarmerIdSet.has(asgn.farmer_id)) continue
+      if (!preorderByFarmer.has(asgn.farmer_id)) {
+        preorderByFarmer.set(asgn.farmer_id, [])
+      }
+      const item = toPreorderAssignmentItem(asgn, productNameById, priceByProduct)
+      item.unit = unitByProduct.get(asgn.product_id) ?? 'kg'
+      preorderByFarmer.get(asgn.farmer_id).push(item)
+    }
+
+    const localFarmerPayments = [...localFarmerIdSet]
+      .map(farmerId => {
+        const preorderItems = preorderByFarmer.get(farmerId) ?? []
+        const surplusItems = localFarmerItems.filter(item => item.farmerId === farmerId)
+        if (preorderItems.length === 0 && surplusItems.length === 0) return null
+        const preorderComponent = computePreorderComponent(farmerId, assignments, priceByProduct)
+        const surplusComponent = computeSurplusComponent(farmerId, inboundRows)
+        return {
+          farmerId,
+          farmerName: farmerNameById.get(farmerId) ?? farmerId,
+          preorderItems,
+          surplusItems,
+          preorderComponent,
+          surplusComponent,
+          totalAmountDue: preorderComponent + surplusComponent
+        }
+      })
+      .filter(Boolean)
 
     const outstationPayments = paymentRows
       .filter(p => farmerTypeById.get(p.farmer_id) === 'outstation')
@@ -227,6 +307,7 @@ async function reconciliationAndMoreRoutes (fastify) {
     return {
       priceDifferences,
       localFarmerItems,
+      localFarmerPayments,
       outstationPayments
     }
   })
@@ -337,31 +418,61 @@ async function reconciliationAndMoreRoutes (fastify) {
   }, async (request) => {
     const { weekId } = request.params
 
-    const inboundRows = await LocalFarmerInbound.find({ week_id: weekId }).lean()
-    if (inboundRows.length === 0) {
+    const [inboundRows, assignments, produceItems, localFarmers] = await Promise.all([
+      LocalFarmerInbound.find({ week_id: weekId }).lean(),
+      FarmerOrderAssignment.find({ week_id: weekId }).lean(),
+      WeeklyProduceItem.find({ week_id: weekId }).select('product_id price_per_unit unit').lean(),
+      Farmer.find({ farmer_type: 'local', active: true }).select('farmer_id name').lean()
+    ])
+
+    const localFarmerIdSet = new Set(localFarmers.map(f => f.farmer_id))
+    const farmerIds = [...new Set([
+      ...inboundRows.map(r => r.farmer_id),
+      ...assignments.map(a => a.farmer_id).filter(id => localFarmerIdSet.has(id))
+    ])]
+
+    if (farmerIds.length === 0) {
       return { localFarmerPayments: [] }
     }
 
     const productIds = [...new Set(
       inboundRows.map(r => r.product_id).filter(Boolean)
     )]
-    const farmerIds = [...new Set(inboundRows.map(r => r.farmer_id))]
-
-    const [products, farmers] = await Promise.all([
-      productIds.length > 0
-        ? ProductCatalogue.find({ product_id: { $in: productIds } })
-          .select('product_id name_en')
-          .lean()
-        : [],
-      Farmer.find({ farmer_id: { $in: farmerIds } })
-        .select('farmer_id name')
+    const products = productIds.length > 0
+      ? await ProductCatalogue.find({ product_id: { $in: productIds } })
+        .select('product_id name_en')
         .lean()
-    ])
+      : []
 
     const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
-    const farmerNameById = new Map(farmers.map(f => [f.farmer_id, f.name]))
+    const farmerNameById = new Map(localFarmers.map(f => [f.farmer_id, f.name]))
+    const priceByProduct = new Map(produceItems.map(p => [p.product_id, p.price_per_unit]))
+    const unitByProduct = new Map(produceItems.map(p => [p.product_id, p.unit]))
 
     const byFarmer = new Map()
+    for (const farmerId of farmerIds) {
+      byFarmer.set(farmerId, {
+        farmerId,
+        farmerName: farmerNameById.get(farmerId) ?? farmerId,
+        preorderItems: [],
+        items: [],
+        preorderComponent: 0,
+        surplusComponent: 0,
+        totalAmountDue: 0,
+        paymentAmountCash: 0,
+        paymentAmountBank: 0
+      })
+    }
+
+    for (const asgn of assignments) {
+      if (!localFarmerIdSet.has(asgn.farmer_id)) continue
+      const group = byFarmer.get(asgn.farmer_id)
+      if (!group) continue
+      const item = toPreorderAssignmentItem(asgn, productNameById, priceByProduct)
+      item.unit = unitByProduct.get(asgn.product_id) ?? 'kg'
+      group.preorderItems.push(item)
+    }
+
     for (const row of inboundRows) {
       const cash = row.payment_amount_cash ?? 0
       const bank = row.payment_amount_bank ?? 0
@@ -371,7 +482,10 @@ async function reconciliationAndMoreRoutes (fastify) {
         byFarmer.set(row.farmer_id, {
           farmerId: row.farmer_id,
           farmerName: farmerNameById.get(row.farmer_id) ?? row.farmer_id,
+          preorderItems: [],
           items: [],
+          preorderComponent: 0,
+          surplusComponent: 0,
           totalAmountDue: 0,
           paymentAmountCash: 0,
           paymentAmountBank: 0
@@ -380,20 +494,30 @@ async function reconciliationAndMoreRoutes (fastify) {
 
       const group = byFarmer.get(row.farmer_id)
       group.items.push(item)
-      group.totalAmountDue += item.amountDue
       group.paymentAmountCash += cash
       group.paymentAmountBank += bank
     }
 
-    const localFarmerPayments = [...byFarmer.values()].map(group => ({
-      farmerId: group.farmerId,
-      farmerName: group.farmerName,
-      items: group.items,
-      totalAmountDue: group.totalAmountDue,
-      paymentAmountCash: group.paymentAmountCash,
-      paymentAmountBank: group.paymentAmountBank,
-      paymentComplete: (group.paymentAmountCash + group.paymentAmountBank) > 0
-    }))
+    const localFarmerPayments = [...byFarmer.values()].map(group => {
+      const preorderComponent = computePreorderComponent(
+        group.farmerId,
+        assignments,
+        priceByProduct
+      )
+      const surplusComponent = computeSurplusComponent(group.farmerId, inboundRows)
+      return {
+        farmerId: group.farmerId,
+        farmerName: group.farmerName,
+        preorderItems: group.preorderItems,
+        items: group.items,
+        preorderComponent,
+        surplusComponent,
+        totalAmountDue: preorderComponent + surplusComponent,
+        paymentAmountCash: group.paymentAmountCash,
+        paymentAmountBank: group.paymentAmountBank,
+        paymentComplete: (group.paymentAmountCash + group.paymentAmountBank) > 0
+      }
+    })
 
     return { localFarmerPayments }
   })
@@ -624,6 +748,43 @@ async function reconciliationAndMoreRoutes (fastify) {
     }
 
     return toWeeklySummaryResponse(summary)
+  })
+
+  fastify.get('/catalogue/search', {
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['q'],
+        additionalProperties: false,
+        properties: {
+          q: { type: 'string', minLength: 1 }
+        }
+      }
+    }
+  }, async (request) => {
+    const { q } = request.query
+    const products = await ProductCatalogue.find({ active: true }).lean()
+
+    const results = products
+      .map((product) => {
+        const match = bestMatch(q, [{
+          id: product.product_id,
+          nameEn: product.name_en,
+          nameTa: product.name_ta || null
+        }])
+        if (!match || match.score < CATALOGUE_SEARCH_SCORE_THRESHOLD) return null
+        return {
+          productId: match.id,
+          nameEn: match.nameEn,
+          nameTa: match.nameTa,
+          score: match.score
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, CATALOGUE_SEARCH_MAX_RESULTS)
+
+    return { results }
   })
 
   fastify.get('/catalogue', {}, async () => {

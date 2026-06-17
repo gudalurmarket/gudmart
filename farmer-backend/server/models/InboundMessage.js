@@ -7,7 +7,9 @@ const IMMUTABLE_INBOUND_FIELDS = new Set([
   'sender_phone',
   'body',
   'fcfs_timestamp',
-  'parsed_items'
+  'parsed_items',
+  'farmer_id',
+  'sender_type'
 ])
 
 const parsedItemSchema = new mongoose.Schema(
@@ -102,6 +104,16 @@ const inboundMessageSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    farmer_id: {
+      type: String,
+      default: null
+    },
+    sender_type: {
+      type: String,
+      required: true,
+      enum: ['customer', 'farmer', 'unknown'],
+      default: 'unknown'
+    },
     body: {
       type: String,
       default: null,
@@ -126,7 +138,9 @@ const inboundMessageSchema = new mongoose.Schema(
         'manual_required',
         'voice_note',
         'image',
-        'no_active_week'
+        'no_active_week',
+        'farmer_availability',
+        'unknown_sender'
       ]
     },
     parsed_items: {

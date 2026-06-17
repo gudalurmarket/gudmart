@@ -3,6 +3,7 @@
 const { randomUUID } = require('node:crypto')
 const Customer = require('../models/Customer')
 const CustomerOrder = require('../models/CustomerOrder')
+const ProductCatalogue = require('../models/ProductCatalogue')
 const WalletTransaction = require('../models/WalletTransaction')
 const WalletEngine = require('../modules/walletEngine')
 const {
@@ -73,6 +74,108 @@ function toWalletTxn (txn) {
     referenceNote: txn.reference_note ?? null,
     createdAt: toIsoString(txn.created_at)
   }
+}
+
+/**
+ * @param {string|null|undefined} note
+ * @returns {string|null}
+ */
+function parseOrderIdFromReferenceNote (note) {
+  if (!note) return null
+  const match = /order_id:([^;\s]+)/.exec(note)
+  return match ? match[1] : null
+}
+
+/**
+ * @param {string|null|undefined} note
+ * @returns {string|null}
+ */
+function parseLineItemIdFromReferenceNote (note) {
+  if (!note) return null
+  const match = /line_item_id:([^;\s]+)/.exec(note)
+  return match ? match[1] : null
+}
+
+/**
+ * Batch-resolve product names for wallet ledger rows.
+ *
+ * @param {object[]} transactions — lean WalletTransaction documents (newest first)
+ * @returns {Promise<object[]>}
+ */
+async function enrichWalletTransactions (transactions) {
+  const orderIds = new Set()
+  const lineItemIds = new Set()
+
+  for (const txn of transactions) {
+    const note = txn.reference_note
+    if (txn.type === 'order_debit' || txn.type === 'order_debit_reversal') {
+      const orderId = parseOrderIdFromReferenceNote(note)
+      if (orderId) orderIds.add(orderId)
+    } else if (txn.type === 'price_diff_credit' || txn.type === 'price_diff_debit') {
+      const lineItemId = parseLineItemIdFromReferenceNote(note)
+      if (lineItemId) lineItemIds.add(lineItemId)
+    }
+  }
+
+  const [ordersByOrderId, ordersWithLineItems] = await Promise.all([
+    orderIds.size > 0
+      ? CustomerOrder.find({ order_id: { $in: [...orderIds] } })
+        .select('order_id line_items')
+        .lean()
+      : [],
+    lineItemIds.size > 0
+      ? CustomerOrder.find({ 'line_items.line_item_id': { $in: [...lineItemIds] } })
+        .select('line_items')
+        .lean()
+      : []
+  ])
+
+  const lineItemsByOrderId = new Map(
+    ordersByOrderId.map(order => [order.order_id, order.line_items ?? []])
+  )
+
+  const productIdByLineItemId = new Map()
+  const productIds = new Set()
+
+  for (const order of ordersByOrderId) {
+    for (const li of order.line_items ?? []) {
+      productIds.add(li.product_id)
+    }
+  }
+  for (const order of ordersWithLineItems) {
+    for (const li of order.line_items ?? []) {
+      if (lineItemIds.has(li.line_item_id)) {
+        productIdByLineItemId.set(li.line_item_id, li.product_id)
+        productIds.add(li.product_id)
+      }
+    }
+  }
+
+  const products = productIds.size > 0
+    ? await ProductCatalogue.find({ product_id: { $in: [...productIds] } })
+      .select('product_id name_en')
+      .lean()
+    : []
+
+  const productNameById = new Map(products.map(p => [p.product_id, p.name_en]))
+
+  return transactions.map(txn => {
+    let productNames = []
+    if (txn.type === 'order_debit' || txn.type === 'order_debit_reversal') {
+      const orderId = parseOrderIdFromReferenceNote(txn.reference_note)
+      const lineItems = orderId ? (lineItemsByOrderId.get(orderId) ?? []) : []
+      productNames = lineItems.map(
+        li => productNameById.get(li.product_id) ?? li.product_id
+      )
+    } else if (txn.type === 'price_diff_credit' || txn.type === 'price_diff_debit') {
+      const lineItemId = parseLineItemIdFromReferenceNote(txn.reference_note)
+      const productId = lineItemId ? productIdByLineItemId.get(lineItemId) : null
+      if (productId) {
+        productNames = [productNameById.get(productId) ?? productId]
+      }
+    }
+    return { ...toWalletTxn(txn), productNames }
+  })
 }
 
 /**
@@ -258,7 +361,7 @@ async function customersRoutes (fastify) {
     return {
       customerId: customer.customer_id,
       walletBalance: customer.wallet_balance,
-      transactions: transactions.map(toWalletTxn)
+      transactions: await enrichWalletTransactions(transactions)
     }
   })
 

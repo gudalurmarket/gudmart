@@ -1,5 +1,7 @@
 'use strict'
 
+const { bestMatch } = require('../lib/similarity')
+
 const CANONICAL_UNITS = new Set(['kg', '100g', 'piece', 'bunch'])
 
 const UNIT_ALIASES = {
@@ -346,6 +348,45 @@ function isRepeatOrderMessage (rawText) {
 }
 
 /**
+ * @param {string | null} productText
+ * @param {Array<{ product_id: string, name_en: string, name_ta?: string | null, unit: string }>} produceList
+ * @returns {{
+ *   suggestedProductId: string | null,
+ *   suggestedProductName: string | null,
+ *   suggestedProductNameTa: string | null,
+ *   similarityScore: number | null
+ * }}
+ */
+function buildSimilaritySuggestion (productText, produceList) {
+  const emptySuggestion = {
+    suggestedProductId: null,
+    suggestedProductName: null,
+    suggestedProductNameTa: null,
+    similarityScore: null
+  }
+
+  const query = productText?.trim()
+  if (!query || !Array.isArray(produceList) || produceList.length === 0) {
+    return emptySuggestion
+  }
+
+  const candidates = produceList.map((item) => ({
+    id: item.product_id,
+    nameEn: item.name_en,
+    nameTa: item.name_ta || null
+  }))
+  const suggestion = bestMatch(query, candidates)
+  if (!suggestion) return emptySuggestion
+
+  return {
+    suggestedProductId: suggestion.id,
+    suggestedProductName: suggestion.nameEn,
+    suggestedProductNameTa: suggestion.nameTa,
+    similarityScore: suggestion.score
+  }
+}
+
+/**
  * @param {string} segment
  * @param {Array<{ product_id: string, name_en: string, name_ta?: string | null, unit: string }>} produceList
  * @param {unknown} synonymTable
@@ -356,6 +397,10 @@ function isRepeatOrderMessage (rawText) {
  *   quantity: number | null,
  *   unit: string | null,
  *   confidence: 'clean' | 'partial' | 'manual_required',
+ *   suggestedProductId: string | null,
+ *   suggestedProductName: string | null,
+ *   suggestedProductNameTa: string | null,
+ *   similarityScore: number | null,
  *   reason?: string
  * }}
  */
@@ -373,13 +418,23 @@ function parseSegment (segment, produceList, synonymTable) {
   const unit = unitResult?.canonical ?? null
   const confidence = deriveConfidence(match, qty, unitResult)
 
+  const suggestion = productId == null
+    ? buildSimilaritySuggestion(rawProductText, produceList)
+    : {
+        suggestedProductId: null,
+        suggestedProductName: null,
+        suggestedProductNameTa: null,
+        similarityScore: null
+      }
+
   return {
     rawText: segment,
     productId,
     rawProductText,
     quantity: qty?.value ?? null,
     unit,
-    confidence
+    confidence,
+    ...suggestion
   }
 }
 
@@ -404,6 +459,13 @@ function parseMessage (rawText, produceList, synonymTable) {
     return []
   }
 
+  const noSuggestion = {
+    suggestedProductId: null,
+    suggestedProductName: null,
+    suggestedProductNameTa: null,
+    similarityScore: null
+  }
+
   if (isRepeatOrderMessage(rawText)) {
     return [{
       rawText,
@@ -412,7 +474,8 @@ function parseMessage (rawText, produceList, synonymTable) {
       quantity: null,
       unit: null,
       confidence: 'manual_required',
-      reason: 'repeat_order'
+      reason: 'repeat_order',
+      ...noSuggestion
     }]
   }
 
@@ -424,7 +487,8 @@ function parseMessage (rawText, produceList, synonymTable) {
       rawProductText: '',
       quantity: null,
       unit: null,
-      confidence: 'manual_required'
+      confidence: 'manual_required',
+      ...noSuggestion
     }]
   }
 
@@ -460,6 +524,7 @@ module.exports = {
   extractProductText,
   matchProduct,
   deriveConfidence,
+  buildSimilaritySuggestion,
   getSynonymCache,
   reloadSynonymCache
 }

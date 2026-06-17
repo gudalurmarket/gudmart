@@ -149,11 +149,18 @@ function getLineValue (lineItem) {
   return null
 }
 
-function productDisplayName (productId, produceById, lang) {
+function productDisplayName (productId, produceById, lang, lineItem = null) {
+  if (lineItem) {
+    if (lang === 'ta' && lineItem.nameTa) return lineItem.nameTa
+    if (lineItem.nameEn) return lineItem.nameEn
+    if (lineItem.productName) return lineItem.productName
+  }
   const item = produceById.get(productId)
-  if (!item) return productId
-  if (lang === 'ta' && item.nameTa) return item.nameTa
-  return item.nameEn ?? productId
+  if (item) {
+    if (lang === 'ta' && item.nameTa) return item.nameTa
+    return item.nameEn ?? productId
+  }
+  return productId
 }
 
 function StatusBadge ({ status, t }) {
@@ -240,7 +247,7 @@ function EditOrderModal ({
       (order.lineItems ?? []).map((li, index) => ({
         localId: li.lineItemId ?? `row-${index}`,
         productId: li.productId,
-        productLabel: li.productName ?? li.productId,
+        productLabel: li.nameEn ?? li.productName ?? li.productId,
         orderedQty: String(li.orderedQty ?? ''),
         unit: li.unit ?? '',
       })),
@@ -540,7 +547,7 @@ function OrderDetail ({
               return (
                 <tr key={li.lineItemId ?? `${li.productId}-${li.orderedQty}`} className="border-b border-[--color-border]">
                   <td className="py-2 pr-2 text-[--color-text-primary]">
-                    {productDisplayName(li.productId, produceById, lang)}
+                    {productDisplayName(li.productId, produceById, lang, li)}
                   </td>
                   <td className="py-2 pr-2 text-[--color-text-secondary]">{li.orderedQty}</td>
                   <td className="py-2 pr-2 text-[--color-text-secondary]">
@@ -740,6 +747,8 @@ function AggregatedSummary ({ orders, produceById, lang, t }) {
         if (!key) continue
         const existing = map.get(key) ?? {
           productId: key,
+          nameEn: li.nameEn ?? null,
+          nameTa: li.nameTa ?? null,
           totalQty: 0,
           unit: li.unit,
         }
@@ -749,8 +758,8 @@ function AggregatedSummary ({ orders, produceById, lang, t }) {
       }
     }
     return [...map.values()].sort((a, b) => {
-      const nameA = productDisplayName(a.productId, produceById, lang)
-      const nameB = productDisplayName(b.productId, produceById, lang)
+      const nameA = productDisplayName(a.productId, produceById, lang, a)
+      const nameB = productDisplayName(b.productId, produceById, lang, b)
       return nameA.localeCompare(nameB, lang === 'ta' ? 'ta' : 'en')
     })
   }, [orders, produceById, lang])
@@ -775,7 +784,7 @@ function AggregatedSummary ({ orders, produceById, lang, t }) {
             {rows.map((row) => (
               <tr key={row.productId} className="border-b border-[--color-border] last:border-0">
                 <td className="py-2 pr-4 text-[--color-text-primary]">
-                  {productDisplayName(row.productId, produceById, lang)}
+                  {productDisplayName(row.productId, produceById, lang, row)}
                 </td>
                 <td className="py-2 pr-4 text-[--color-text-secondary]">{row.totalQty}</td>
                 <td className="py-2 text-[--color-text-secondary]">
@@ -876,7 +885,7 @@ export default function OrderManagement () {
   }, [mainTab, weekId, fetchOrders])
 
   const loadProduce = useCallback(async () => {
-    if (!weekId || produceLoaded) return
+    if (!weekId) return
     setProduceLoading(true)
     try {
       const data = await apiGet(`/api/v1/weeks/${weekId}/produce`)
@@ -887,7 +896,17 @@ export default function OrderManagement () {
     } finally {
       setProduceLoading(false)
     }
-  }, [weekId, produceLoaded])
+  }, [weekId])
+
+  useEffect(() => {
+    if (!weekId) {
+      setProduceItems([])
+      setProduceLoaded(false)
+      return
+    }
+    setProduceLoaded(false)
+    loadProduce()
+  }, [weekId, loadProduce])
 
   const produceById = useMemo(
     () => new Map(produceItems.map((p) => [p.productId, p])),

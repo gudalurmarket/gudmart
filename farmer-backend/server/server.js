@@ -5,27 +5,15 @@ require('dotenv').config()
 const { buildApp } = require('./app')
 const { reloadSynonymCache } = require('./modules/parser')
 
-/** Temporary startup diagnostics — remove after hang is resolved */
-function startupLog (id, message) {
-  console.error(`[${id}] ${message}`)
-}
-
 /** @type {import('fastify').FastifyInstance | null} */
 let app = null
 
 async function start () {
-  startupLog('STARTUP-01', 'start() entered')
-  startupLog('STARTUP-02', 'before buildApp()')
   app = await buildApp()
-  startupLog('STARTUP-03', 'after buildApp()')
-  startupLog('STARTUP-04', 'before app.ready()')
   await app.ready()
-  startupLog('STARTUP-05', 'after app.ready()')
   const port = Number(process.env.PORT) || 8080
-  startupLog('STARTUP-06', `before app.listen(port=${port})`)
   await app.listen({ port, host: '0.0.0.0' })
-  startupLog('STARTUP-07', 'after app.listen()')
-  app.log.info({ port }, 'Server listening')
+  app.log.info({ port }, 'GudMart API listening')
 }
 
 process.on('SIGHUP', async () => {

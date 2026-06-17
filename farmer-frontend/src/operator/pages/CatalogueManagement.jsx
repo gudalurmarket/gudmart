@@ -41,14 +41,118 @@ function SlidePanel ({ open, onClose, children }) {
   )
 }
 
+function DuplicateWarning ({ matchName, onConfirm, onCancel, t }) {
+  return (
+    <div
+      className="mt-1.5 rounded-lg border border-[--color-warning] bg-[--color-warning-light] p-2.5 text-sm"
+      role="alert"
+    >
+      <p className="text-[--color-warning]">
+        ⚠️ {t('catalogue.duplicate_warning').replace('{name}', matchName)}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="rounded-lg bg-[--color-warning] px-2.5 py-1.5 text-xs font-medium text-[--color-text-inverse]"
+        >
+          {t('catalogue.duplicate_confirm')}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-[--color-border] bg-[--color-surface] px-2.5 py-1.5 text-xs font-medium text-[--color-text-secondary]"
+        >
+          {t('catalogue.duplicate_cancel')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ProductModal ({ mode, product, onClose, onSaved, t }) {
   const [nameEn, setNameEn] = useState(product?.nameEn ?? '')
   const [nameTa, setNameTa] = useState(product?.nameTa ?? '')
   const [defaultUnit, setDefaultUnit] = useState(product?.defaultUnit ?? UNIT_TYPES.KG)
   const [saving, setSaving] = useState(false)
   const [generalError, setGeneralError] = useState(null)
+  const [enDuplicateWarning, setEnDuplicateWarning] = useState(null)
+  const [taDuplicateWarning, setTaDuplicateWarning] = useState(null)
+  const [enDuplicateConfirmed, setEnDuplicateConfirmed] = useState(false)
+  const [taDuplicateConfirmed, setTaDuplicateConfirmed] = useState(false)
+
+  const nameEnInputRef = useRef(null)
+  const nameTaInputRef = useRef(null)
+  const similarityDebounceRef = useRef(null)
 
   const isAdd = mode === 'add'
+
+  useEffect(() => () => clearTimeout(similarityDebounceRef.current), [])
+
+  const checkFieldSimilarity = useCallback(async (value, field) => {
+    const trimmed = value.trim()
+    if (!trimmed) return false
+
+    try {
+      const data = await apiGet(`/api/v1/catalogue/search?q=${encodeURIComponent(trimmed)}`)
+      const top = data.results?.[0]
+      if (!top) return false
+
+      if (field === 'en') {
+        setEnDuplicateWarning({ matchName: top.nameEn })
+        setEnDuplicateConfirmed(false)
+      } else {
+        setTaDuplicateWarning({ matchName: top.nameEn })
+        setTaDuplicateConfirmed(false)
+      }
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  const runSimilarityCheck = useCallback(async (value, field) => {
+    if (!isAdd) return
+    await checkFieldSimilarity(value, field)
+  }, [isAdd, checkFieldSimilarity])
+
+  const scheduleSimilarityCheck = useCallback((value, field) => {
+    clearTimeout(similarityDebounceRef.current)
+    similarityDebounceRef.current = setTimeout(() => {
+      runSimilarityCheck(value, field)
+    }, 300)
+  }, [runSimilarityCheck])
+
+  const checkSimilarityBeforeSave = useCallback(async () => {
+    if (!isAdd) return true
+
+    const checks = []
+    if (nameEn.trim() && !enDuplicateConfirmed) {
+      checks.push(checkFieldSimilarity(nameEn, 'en'))
+    }
+    if (nameTa.trim() && !taDuplicateConfirmed) {
+      checks.push(checkFieldSimilarity(nameTa, 'ta'))
+    }
+    if (checks.length === 0) return true
+
+    const found = await Promise.all(checks)
+    return !found.some(Boolean)
+  }, [
+    isAdd,
+    nameEn,
+    nameTa,
+    enDuplicateConfirmed,
+    taDuplicateConfirmed,
+    checkFieldSimilarity,
+  ])
+
+  const handleNameEnBlur = () => {
+    if (nameEn.trim()) scheduleSimilarityCheck(nameEn, 'en')
+  }
+
+  const handleNameTaBlur = () => {
+    if (nameTa.trim()) scheduleSimilarityCheck(nameTa, 'ta')
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -56,6 +160,11 @@ function ProductModal ({ mode, product, onClose, onSaved, t }) {
     setGeneralError(null)
 
     try {
+      if (isAdd) {
+        const canProceed = await checkSimilarityBeforeSave()
+        if (!canProceed) return
+      }
+
       const body = {
         nameEn: nameEn.trim(),
         defaultUnit,
@@ -75,7 +184,11 @@ function ProductModal ({ mode, product, onClose, onSaved, t }) {
     }
   }
 
-  const canSubmit = nameEn.trim().length > 0 && !saving
+  const hasBlockingDuplicate = isAdd && (
+    (enDuplicateWarning && !enDuplicateConfirmed) ||
+    (taDuplicateWarning && !taDuplicateConfirmed)
+  )
+  const canSubmit = nameEn.trim().length > 0 && !saving && !hasBlockingDuplicate
 
   const unitLabel = (unit) => {
     const keys = {
@@ -110,13 +223,36 @@ function ProductModal ({ mode, product, onClose, onSaved, t }) {
             <span className="ml-0.5 text-[--color-error]">*</span>
           </label>
           <input
+            ref={nameEnInputRef}
             type="text"
             value={nameEn}
-            onChange={(e) => setNameEn(e.target.value)}
+            onChange={(e) => {
+              setNameEn(e.target.value)
+              setEnDuplicateWarning(null)
+              setEnDuplicateConfirmed(false)
+            }}
+            onBlur={isAdd ? handleNameEnBlur : undefined}
             placeholder={t('field.product_name_en')}
             required
+            aria-invalid={isAdd && enDuplicateWarning && !enDuplicateConfirmed ? true : undefined}
             className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-3 py-2.5 text-sm outline-none focus:border-[--color-primary]"
           />
+          {isAdd && enDuplicateWarning && !enDuplicateConfirmed && (
+            <DuplicateWarning
+              matchName={enDuplicateWarning.matchName}
+              onConfirm={() => {
+                setEnDuplicateWarning(null)
+                setEnDuplicateConfirmed(true)
+              }}
+              onCancel={() => {
+                setNameEn('')
+                setEnDuplicateWarning(null)
+                setEnDuplicateConfirmed(false)
+                nameEnInputRef.current?.focus()
+              }}
+              t={t}
+            />
+          )}
         </div>
 
         <div>
@@ -124,12 +260,35 @@ function ProductModal ({ mode, product, onClose, onSaved, t }) {
             {t('registration.catalogue.name_ta_label')}
           </label>
           <input
+            ref={nameTaInputRef}
             type="text"
             value={nameTa}
-            onChange={(e) => setNameTa(e.target.value)}
+            onChange={(e) => {
+              setNameTa(e.target.value)
+              setTaDuplicateWarning(null)
+              setTaDuplicateConfirmed(false)
+            }}
+            onBlur={isAdd ? handleNameTaBlur : undefined}
             placeholder={t('action.add') + ' (Optional)'}
+            aria-invalid={isAdd && taDuplicateWarning && !taDuplicateConfirmed ? true : undefined}
             className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-3 py-2.5 text-sm outline-none focus:border-[--color-primary]"
           />
+          {isAdd && taDuplicateWarning && !taDuplicateConfirmed && (
+            <DuplicateWarning
+              matchName={taDuplicateWarning.matchName}
+              onConfirm={() => {
+                setTaDuplicateWarning(null)
+                setTaDuplicateConfirmed(true)
+              }}
+              onCancel={() => {
+                setNameTa('')
+                setTaDuplicateWarning(null)
+                setTaDuplicateConfirmed(false)
+                nameTaInputRef.current?.focus()
+              }}
+              t={t}
+            />
+          )}
         </div>
 
         <div>

@@ -177,7 +177,8 @@ async function writeDeliveredQty (allocations, productId, db) {
  *
  * @param {string} weekId
  * @param {string} productId
- * @param {number} deliveredQty
+ * @param {number} deliveredQty — aggregate delivered_qty across all farmer_order_assignments
+ *   for (weekId, productId); callers must sum before invoking, not pass a single assignment qty
  * @param {{ CustomerOrder: import('mongoose').Model, WeeklyProduceItem: import('mongoose').Model }} db
  * @returns {Promise<{ allocated: Array<{ customerId: string, orderId: string, allocatedQty: number, requestedQty: number, unit: string }>, shortfall: boolean }>}
  */
