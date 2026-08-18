@@ -39,6 +39,18 @@ async function applyBalancePayment ({
     )
   }
 
+  // Validate order EXISTS before touching wallet
+  const order = await CustomerOrder.findOne({
+    order_id: orderId,
+    week_id: weekId
+  })
+  if (!order) {
+    throw new WalletValidationError(
+      `applyBalancePayment order not found: ${orderId}`,
+      { orderId, weekId }
+    )
+  }
+
   const expected = { type: 'balance_payment', customer_id: customerId, amount }
 
   try {
@@ -62,16 +74,6 @@ async function applyBalancePayment ({
       })
     })
 
-    const order = await CustomerOrder.findOne({
-      order_id: orderId,
-      week_id: weekId
-    })
-    if (!order) {
-      throw new WalletValidationError(
-        `applyBalancePayment order not found: ${orderId}`,
-        { orderId, weekId }
-      )
-    }
     const remainingDue = Math.max(0, order.balance_due - amount)
     await CustomerOrder.updateOne(
       { order_id: orderId, week_id: weekId },
