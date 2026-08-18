@@ -143,7 +143,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Health check: `GET /health`
+There is no dedicated health-check route. To confirm the server is up, request any non-API path (e.g. `GET /login`) — those are served publicly by the SPA fallback without authentication.
 
 ### Frontend
 

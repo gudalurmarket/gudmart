@@ -156,7 +156,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Default port is `3000` (or `PORT` from `.env`). Health check: `GET /health`.
+Default port is `3000` (or `PORT` from `.env`). There is no dedicated health-check route — request any non-API path (e.g. `GET /login`) to confirm the server is up; those are served publicly by the SPA fallback.
 
 ### Environment variables
 
@@ -174,18 +174,48 @@ Default port is `3000` (or `PORT` from `.env`). Health check: `GET /health`.
 
 ## API routes (current)
 
+All routes below are mounted under `/api/v1/` except the WhatsApp webhook, which is unauthenticated (HMAC-verified instead) and lives outside that prefix.
+
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Service health |
 | `GET` | `/webhook/whatsapp` | Meta webhook verification |
 | `POST` | `/webhook/whatsapp` | Inbound WhatsApp messages |
-| `GET` | `/inbound/pending` | Pending intake queue (FCFS sort) |
-| `PATCH` | `/inbound/:message_id/approve` | Approve parsed message |
-| `PATCH` | `/inbound/:message_id/reject` | Reject message |
-| `POST` | `/orders/from-inbound/:message_id` | Create order from approved inbound |
-| `POST` | `/allocation/run/:week_id` | Run stock allocation for a week |
-
-Target base path for the full API: `/api/v1/` (see `ARCHITECTURE.md`).
+| `GET`, `POST` | `/weeks` | List / create market weeks |
+| `GET` | `/weeks/:weekId` | Week detail |
+| `PATCH` | `/weeks/:weekId/state` | State machine transition |
+| `GET`, `POST` | `/weeks/:weekId/produce` | Weekly produce list |
+| `PATCH` | `/weeks/:weekId/produce/:itemId` | Edit/soft-delete a produce item |
+| `GET` | `/weeks/:weekId/intake` | Order intake queue |
+| `PATCH` | `/weeks/:weekId/intake/:messageId` | Approve/reject an inbound message |
+| `GET`, `POST` | `/weeks/:weekId/orders` | List / create customer orders |
+| `PATCH`, `DELETE` | `/weeks/:weekId/orders/:orderId` | Edit / cancel an order |
+| `POST` | `/weeks/:weekId/orders/:orderId/confirm` | Confirm a pending order |
+| `PATCH` | `/weeks/:weekId/orders/:orderId/packed` | Mark an order packed |
+| `PATCH` | `/weeks/:weekId/orders/:orderId/dispatched` | Mark an order dispatched |
+| `GET` | `/weeks/:weekId/delivery` | Farmer order assignments |
+| `PATCH` | `/weeks/:weekId/delivery/:assignmentId` | Record delivered quantity |
+| `GET` | `/weeks/:weekId/packing` | Packing list |
+| `GET` | `/weeks/:weekId/dispatch` | Dispatch list |
+| `GET`, `POST` | `/weeks/:weekId/walkin` | Walk-in sales |
+| `POST` | `/weeks/:weekId/localfarmer-inbound` | Record local farmer inbound produce |
+| `PATCH` | `/weeks/:weekId/localfarmer-inbound/:inboundId/payment` | Record local farmer payment |
+| `GET` | `/weeks/:weekId/localfarmer-payments` | Local farmer payment summary |
+| `GET` | `/weeks/:weekId/reconciliation` | Price-difference reconciliation queue |
+| `POST` | `/weeks/:weekId/reconciliation/:diffId/confirm` | Confirm a price difference |
+| `GET` | `/weeks/:weekId/farmerpayments` | Outstation farmer payments |
+| `PATCH` | `/weeks/:weekId/farmerpayments/:paymentId` | Record an outstation farmer payment |
+| `GET` | `/weeks/:weekId/summary` | Weekly financial summary |
+| `GET`, `POST` | `/customers` | List / register customers |
+| `PATCH` | `/customers/:customerId` | Edit a customer |
+| `GET` | `/customers/:customerId/wallet` | Wallet balance and ledger |
+| `POST` | `/customers/:customerId/wallet/topup` | Record a wallet top-up |
+| `GET`, `POST` | `/farmers` | List / register farmers |
+| `PATCH` | `/farmers/:farmerId` | Edit a farmer |
+| `GET`, `POST` | `/catalogue` | Product catalogue |
+| `GET` | `/catalogue/search` | Fuzzy/similarity product search |
+| `PATCH` | `/catalogue/:productId` | Edit a catalogue product |
+| `POST` | `/auth/verify` | Verify a Firebase ID token |
+| `GET` | `/events/intake-queue` | SSE stream for the operator intake queue |
 
 ---
 
