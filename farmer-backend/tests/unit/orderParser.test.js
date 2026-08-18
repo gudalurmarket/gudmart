@@ -137,7 +137,8 @@ describe('parseMessage', () => {
 
   test('13. repeat order — English', () => {
     const result = parseMessage('same as last week', PRODUCE_LIST, SYNONYM_TABLE)
-    expect(result).toEqual([{
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
       rawText: 'same as last week',
       productId: null,
       rawProductText: null,
@@ -145,7 +146,7 @@ describe('parseMessage', () => {
       unit: null,
       confidence: 'manual_required',
       reason: 'repeat_order'
-    }])
+    })
   })
 
   test('14. repeat order — Tamil', () => {

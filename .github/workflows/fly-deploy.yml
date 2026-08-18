@@ -10,18 +10,28 @@ jobs:
   test:
     name: Run backend tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: farmer-backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: farmer-backend/package-lock.json
-      - run: npm ci
-      - run: npm test
+          cache-dependency-path: |
+            farmer-backend/package-lock.json
+            farmer-frontend/package-lock.json
+      # Backend tests (tests/unit/spaFallback.test.js) serve the built PWA shell
+      # from farmer-frontend/dist, so it must exist before running npm test.
+      - name: Build frontend
+        working-directory: farmer-frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install backend dependencies
+        working-directory: farmer-backend
+        run: npm ci
+      - name: Run backend tests
+        working-directory: farmer-backend
+        run: npm test
 
   deploy:
     name: Deploy app

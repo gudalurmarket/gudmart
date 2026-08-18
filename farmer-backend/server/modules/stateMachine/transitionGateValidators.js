@@ -172,18 +172,18 @@ async function validateReconciliationToClosed (weekId) {
   })
   const assignedLocalFarmers = assignmentFarmerIds.filter(id => localFarmerIdSet.has(id))
 
-  const inboundLocalFarmers = await LocalFarmerInbound.distinct('farmer_id', { week_id: weekId })
+  const inboundRows = await LocalFarmerInbound.find({ week_id: weekId })
+    .select('farmer_id payment_amount_cash payment_amount_bank')
+    .lean()
+  const inboundLocalFarmers = inboundRows.map(row => row.farmer_id)
   const allLocalFarmerIds = [...new Set([...assignedLocalFarmers, ...inboundLocalFarmers])]
 
   if (allLocalFarmerIds.length > 0) {
-    const paymentRows = await FarmerPayment.find({
-      week_id: weekId,
-      farmer_id: { $in: allLocalFarmerIds },
-      status: { $in: ['paid', 'partial', 'unpaid'] }
-    })
-      .select('farmer_id')
-      .lean()
-    const paidFarmerIds = new Set(paymentRows.map(p => p.farmer_id))
+    const paidFarmerIds = new Set(
+      inboundRows
+        .filter(row => (row.payment_amount_cash ?? 0) + (row.payment_amount_bank ?? 0) > 0)
+        .map(row => row.farmer_id)
+    )
 
     for (const farmerId of allLocalFarmerIds) {
       if (!paidFarmerIds.has(farmerId)) {

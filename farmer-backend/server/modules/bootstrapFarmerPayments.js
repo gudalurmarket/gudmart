@@ -3,8 +3,6 @@
 const { randomUUID } = require('node:crypto')
 const FarmerOrderAssignment = require('../models/FarmerOrderAssignment')
 const FarmerPayment = require('../models/FarmerPayment')
-const Farmer = require('../models/Farmer')
-const LocalFarmerInbound = require('../models/LocalFarmerInbound')
 const WeeklyProduceItem = require('../models/WeeklyProduceItem')
 
 /**
@@ -34,37 +32,22 @@ function computeSurplusComponent (farmerId, inboundRows) {
 }
 
 /**
- * Create unpaid FarmerPayment rows for farmers with deliveries but no payment record.
+ * Create unpaid FarmerPayment rows for outstation farmers with deliveries but no
+ * payment record. Local farmer payments are tracked on LocalFarmerInbound directly
+ * (payment_amount_cash / payment_amount_bank), not via FarmerPayment.
  * Idempotent — safe to call multiple times (e.g. on reconciliation entry or Tab B load).
  *
  * @param {string} weekId
  * @param {string} operatorUid
  */
 async function bootstrapFarmerPayments (weekId, operatorUid) {
-  const [assignments, inboundRows, existing, localFarmers] = await Promise.all([
-    FarmerOrderAssignment.find({ week_id: weekId }).lean(),
-    LocalFarmerInbound.find({ week_id: weekId }).lean(),
-    FarmerPayment.find({ week_id: weekId }).select('farmer_id').lean(),
-    Farmer.find({ farmer_type: 'local', active: true }).select('farmer_id').lean()
+  const [assignments, existing] = await Promise.all([
+    FarmerOrderAssignment.find({ week_id: weekId, delivered_qty: { $gt: 0 } }).lean(),
+    FarmerPayment.find({ week_id: weekId }).select('farmer_id').lean()
   ])
 
-  const localFarmerIdSet = new Set(localFarmers.map(f => String(f.farmer_id)))
   const existingFarmerIds = new Set(existing.map(p => String(p.farmer_id)))
-
-  const farmerIdsNeedingPayment = new Set()
-
-  for (const asgn of assignments) {
-    const farmerId = String(asgn.farmer_id)
-    if (asgn.delivered_qty > 0) {
-      farmerIdsNeedingPayment.add(farmerId)
-    } else if (localFarmerIdSet.has(farmerId)) {
-      farmerIdsNeedingPayment.add(farmerId)
-    }
-  }
-
-  for (const row of inboundRows) {
-    farmerIdsNeedingPayment.add(String(row.farmer_id))
-  }
+  const farmerIdsNeedingPayment = new Set(assignments.map(asgn => String(asgn.farmer_id)))
 
   const newFarmerIds = [...farmerIdsNeedingPayment].filter(id => !existingFarmerIds.has(id))
   if (newFarmerIds.length === 0) return
@@ -82,11 +65,7 @@ async function bootstrapFarmerPayments (weekId, operatorUid) {
 
   await FarmerPayment.insertMany(
     newFarmerIds.map(farmerId => {
-      const preorder = computePreorderComponent(farmerId, assignments, priceByProduct)
-      const surplus = localFarmerIdSet.has(farmerId)
-        ? computeSurplusComponent(farmerId, inboundRows)
-        : 0
-      const amountDue = preorder + surplus
+      const amountDue = computePreorderComponent(farmerId, assignments, priceByProduct)
       return {
         payment_id: `fp-${randomUUID()}`,
         week_id: weekId,
