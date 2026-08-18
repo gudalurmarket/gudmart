@@ -46,7 +46,7 @@ async function registerRoutes (instance) {
 
   instance.decorate('synonymCache', [])
   await instance.register(require('../../../server/routes/webhook'))
-  await instance.register(require('../../../server/routes/weeks'), { prefix: '/api/v1' })
+  await instance.register(require('../../../server/routes/weeksRoutes'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/produceRoutes'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/customers'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/ordersAndIntake'), { prefix: '/api/v1' })
