@@ -8,7 +8,7 @@
 # Runtime secrets (MONGODB_URI, WHATSAPP_*, FIREBASE_SERVICE_ACCOUNT_JSON) use:
 #   fly secrets set KEY=value
 
-app = 'gudmart'
+app = 'gudmart-app'
 primary_region = 'sin'
 
 [build]
