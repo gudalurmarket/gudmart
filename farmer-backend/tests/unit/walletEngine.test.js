@@ -3,6 +3,7 @@
 const { randomUUID } = require('node:crypto')
 const WalletEngine = require('../../server/modules/walletEngine')
 const Customer = require('../../server/models/Customer')
+const CustomerOrder = require('../../server/models/CustomerOrder')
 const WalletTransaction = require('../../server/models/WalletTransaction')
 const {
   WalletInsufficientError,
@@ -36,6 +37,7 @@ async function cleanupWalletTestData () {
   if (ids.length > 0) {
     await WalletTransaction.deleteMany({ customer_id: { $in: ids } })
   }
+  await CustomerOrder.deleteMany({ week_id: WEEK_ID, created_by: TEST_CREATOR })
   await Customer.deleteMany({ created_by: TEST_CREATOR })
 }
 
@@ -416,13 +418,37 @@ describe('WalletEngine', () => {
     it('credits wallet for balance_payment', async () => {
       const customer = await createCustomer(0)
       const key = randomUUID()
+      const orderId = 'order-bal-1'
+
+      // Create a CustomerOrder with balance_due for this payment
+      await CustomerOrder.create({
+        order_id: orderId,
+        week_id: WEEK_ID,
+        customer_id: customer.customer_id,
+        status: 'pending_payment',
+        fcfs_timestamp: new Date(),
+        order_value: 1500,
+        balance_due: 1500,
+        line_items: [
+          {
+            line_item_id: 'line-bal-1',
+            product_id: 'prod-test',
+            ordered_qty: 1,
+            delivered_qty: 1,
+            unit: 'kg',
+            price_per_unit: 1500,
+            line_value: 1500
+          }
+        ],
+        created_by: TEST_CREATOR
+      })
 
       const result = await WalletEngine.applyBalancePayment({
         idempotencyKey: key,
         customerId: customer.customer_id,
         amount: 1500,
         channel: 'upi',
-        orderId: 'order-bal-1',
+        orderId,
         weekId: WEEK_ID,
         createdBy: OPERATOR
       })
