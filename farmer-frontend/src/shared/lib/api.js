@@ -65,7 +65,7 @@ export async function apiFetch (path, options = {}) {
   }
 
   const headers = {
-    'Content-Type': 'application/json',
+    ...(options.body != null ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   }
   if (token) {
