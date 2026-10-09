@@ -8,6 +8,7 @@ import { apiGet, apiPatch, apiPost, DuplicatePhoneError } from '../../shared/lib
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { FARMER_TYPES } from '../../shared/lib/constants.js'
 import useWeekState from '../../shared/hooks/useWeekState.js'
+import { CONFIRM_ARM_DELAY_MS } from '../../shared/lib/constants.js'
 
 const TOAST_DISMISS_MS = 4000
 
@@ -219,12 +220,17 @@ function TypeBadge ({ farmerType, t }) {
 function FarmerRow ({ farmer, onEdit, onToggleActive, pendingDeactivateId, setPendingDeactivateId, t }) {
   const isPending = pendingDeactivateId === farmer.farmerId
 
+  const armedAtRef = useRef(0)
+
   const handleDeactivateClick = (event) => {
     event.stopPropagation()
     if (isPending) {
+      // A double-tap fires the confirm click right after arming — ignore it
+      if (Date.now() - armedAtRef.current < CONFIRM_ARM_DELAY_MS) return
       onToggleActive(farmer)
       setPendingDeactivateId(null)
     } else {
+      armedAtRef.current = Date.now()
       setPendingDeactivateId(farmer.farmerId)
     }
   }

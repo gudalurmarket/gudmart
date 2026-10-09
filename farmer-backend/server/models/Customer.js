@@ -39,6 +39,15 @@ const customerSchema = new mongoose.Schema(
     created_by: {
       type: String,
       required: true
+    },
+    // Set on every PATCH — answers "who changed this record, and when"
+    updated_at: {
+      type: Date,
+      default: null
+    },
+    updated_by: {
+      type: String,
+      default: null
     }
   },
   {

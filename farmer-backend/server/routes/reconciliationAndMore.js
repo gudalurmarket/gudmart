@@ -853,6 +853,8 @@ async function reconciliationAndMoreRoutes (fastify) {
     if (request.body.nameTa != null) updates.name_ta = request.body.nameTa.trim()
     if (request.body.defaultUnit != null) updates.default_unit = request.body.defaultUnit
     if (request.body.active != null) updates.active = request.body.active
+    updates.updated_at = new Date()
+    updates.updated_by = request.user.uid
 
     const product = await ProductCatalogue.findOneAndUpdate(
       { product_id: productId },

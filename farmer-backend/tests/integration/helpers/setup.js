@@ -49,6 +49,7 @@ async function registerRoutes (instance) {
   await instance.register(require('../../../server/routes/weeksRoutes'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/produceRoutes'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/customers'), { prefix: '/api/v1' })
+  await instance.register(require('../../../server/routes/farmersRoutes'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/ordersAndIntake'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/reconciliationAndMore'), { prefix: '/api/v1' })
   await instance.register(require('../../../server/routes/deliveryAndPacking'), { prefix: '/api/v1' })

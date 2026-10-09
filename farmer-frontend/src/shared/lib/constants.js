@@ -83,3 +83,6 @@ export const STATE_BADGE_CLASS = {
   reconciliation: 'badge-reconciliation',
   closed: 'badge-closed',
 }
+
+// Ignore the "Confirm deactivate" click if it lands this soon after the arming click (double-tap guard)
+export const CONFIRM_ARM_DELAY_MS = 800

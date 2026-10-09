@@ -8,6 +8,7 @@ import { apiGet, apiPatch, apiPost } from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { UNIT_TYPES } from '../../shared/lib/constants.js'
 import useWeekState from '../../shared/hooks/useWeekState.js'
+import { CONFIRM_ARM_DELAY_MS } from '../../shared/lib/constants.js'
 
 const TOAST_DISMISS_MS = 4000
 
@@ -356,12 +357,17 @@ function UnitBadge ({ unit, t }) {
 function ProductRow ({ product, onEdit, onToggleActive, pendingDeactivateId, setPendingDeactivateId, t }) {
   const isPending = pendingDeactivateId === product.productId
 
+  const armedAtRef = useRef(0)
+
   const handleDeactivateClick = (event) => {
     event.stopPropagation()
     if (isPending) {
+      // A double-tap fires the confirm click right after arming — ignore it
+      if (Date.now() - armedAtRef.current < CONFIRM_ARM_DELAY_MS) return
       onToggleActive(product)
       setPendingDeactivateId(null)
     } else {
+      armedAtRef.current = Date.now()
       setPendingDeactivateId(product.productId)
     }
   }

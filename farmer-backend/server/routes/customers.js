@@ -300,6 +300,8 @@ async function customersRoutes (fastify) {
     if (request.body.name != null) updates.name = request.body.name.trim()
     if (request.body.phone != null) updates.phone = request.body.phone.trim()
     if (request.body.active != null) updates.active = request.body.active
+    updates.updated_at = new Date()
+    updates.updated_by = request.user.uid
 
     let customer
     try {

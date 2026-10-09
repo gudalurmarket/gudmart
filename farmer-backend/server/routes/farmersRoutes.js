@@ -153,6 +153,8 @@ async function farmersRoutes (fastify) {
     }
 
     if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date()
+      updates.updated_by = request.user.uid
       await farmers().updateOne({ farmer_id: farmerId }, { $set: updates })
     }
 
