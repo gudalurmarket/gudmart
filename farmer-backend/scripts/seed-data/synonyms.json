@@ -2,21 +2,595 @@
   "_id": "synonyms",
   "table": [
     {
-      "canonical": "Tomato",
-      "aliases": ["tom", "tomato", "தக்காளி", "thakkali"],
+      "canonical": "Avacado",
+      "aliases": [
+        "avocado",
+        "avocados",
+        "avacados",
+        "butter fruit"
+      ],
       "language": "mixed"
     },
     {
-      "canonical": "Coconut",
-      "aliases": ["coconut", "coco", "தேங்காய்", "thengai"],
+      "canonical": "Avarakai",
+      "aliases": [
+        "avarakkai",
+        "avarai",
+        "avarakai beans",
+        "அவரைக்காய்",
+        "அவரைக்கை"
+      ],
       "language": "mixed"
     },
     {
-      "canonical": "Spinach",
-      "aliases": ["spinach", "keerai", "கீரை", "பசலை"],
+      "canonical": "Baby potato",
+      "aliases": [
+        "baby potatoes",
+        "small potato",
+        "small potatoes",
+        "baby urulai"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Banana Flower",
+      "aliases": [
+        "banana blossom",
+        "vazhaipoo",
+        "vaazhaipoo",
+        "vazhaipu",
+        "வாழைப்பூ"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Banana nenthran raw",
+      "aliases": [
+        "nenthran raw",
+        "nendran raw",
+        "banana nendran raw",
+        "raw nendran",
+        "raw nenthran"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Banana Nenthran ripe",
+      "aliases": [
+        "nenthran ripe",
+        "nendran ripe",
+        "banana nendran ripe",
+        "ripe nendran",
+        "ripe nenthran",
+        "nendran",
+        "nenthran",
+        "நேந்திரம் பழம்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Banana robusta raw",
+      "aliases": [
+        "robusta raw",
+        "robusta",
+        "banana robusta",
+        "robusta banana"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Banana stem",
+      "aliases": [
+        "vazhaithandu",
+        "vazhai thandu",
+        "banana stalk",
+        "வாழைத்தண்டு"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Banana- njalipoovan",
+      "aliases": [
+        "njalipoovan",
+        "njalipoovan banana",
+        "banana njalipoovan",
+        "njalipoovan kg"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Beans",
+      "aliases": [
+        "bean",
+        "french beans",
+        "green beans",
+        "பீன்ஸ்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Beetroot",
+      "aliases": [
+        "beet root",
+        "beet",
+        "beets",
+        "beetroots",
+        "பீட்ரூட்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Black tea",
+      "aliases": [
+        "black tea powder",
+        "blacktea"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Blue tea",
+      "aliases": [
+        "butterfly pea tea",
+        "blue pea tea",
+        "shankhpushpi tea",
+        "blue tea powder"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Bread fruit",
+      "aliases": [
+        "breadfruit",
+        "bread fruits",
+        "breadfruits"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Brocoli",
+      "aliases": [
+        "broccoli",
+        "brocolli",
+        "broccolli",
+        "ப்ரோக்கோலி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Butter beans",
+      "aliases": [
+        "butterbeans",
+        "butter bean",
+        "பட்டர் பீன்ஸ்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Cabbage Green",
+      "aliases": [
+        "green cabbage",
+        "cabbage green",
+        "cabbagegreen"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Cabbage Red",
+      "aliases": [
+        "red cabbage",
+        "purple cabbage",
+        "cabbagered"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Carrot orange",
+      "aliases": [
+        "carrot",
+        "carrots",
+        "orange carrot",
+        "orange carrots",
+        "கேரட்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Carrot Red",
+      "aliases": [
+        "red carrot",
+        "red carrots",
+        "carrot red"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Chamomile tea",
+      "aliases": [
+        "chamomile",
+        "chamomile tea powder"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Chilli Green",
+      "aliases": [
+        "green chilli",
+        "green chillies",
+        "green chili",
+        "green chilies",
+        "pachai milagai",
+        "பச்சை மிளகாய்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Chilli Kandari",
+      "aliases": [
+        "kandari chilli",
+        "kandari",
+        "kanthari",
+        "kanthari chilli",
+        "kandhari",
+        "kandhari chilli",
+        "bird eye chilli"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Chow chow",
+      "aliases": [
+        "chowchow",
+        "chow-chow",
+        "chayote",
+        "chow chows",
+        "சௌசௌ"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Coriander",
+      "aliases": [
+        "coriander leaves",
+        "coriander leaf",
+        "kothamalli",
+        "kothamalli leaves",
+        "cilantro",
+        "கொத்தமல்லி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Egg fruit",
+      "aliases": [
+        "eggfruit",
+        "canistel",
+        "egg fruits"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Garlic",
+      "aliases": [
+        "poondu",
+        "garlic pods",
+        "பூண்டு"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Ginger",
+      "aliases": [
+        "inji",
+        "fresh ginger",
+        "இஞ்சி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Green tea",
+      "aliases": [
+        "greentea",
+        "green tea leaves"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Hand rolled black tea",
+      "aliases": [
+        "handrolled black tea",
+        "hand-rolled black tea",
+        "hand rolled tea"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Hibiscus tea",
+      "aliases": [
+        "hibiscus",
+        "hibiscus flower tea"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Iceberg Lettuce",
+      "aliases": [
+        "iceberg",
+        "iceberg lettuces"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "kale",
+      "aliases": [
+        "kale leaves",
+        "கேல்"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Kasturi manjal powder",
+      "aliases": [
+        "kasturi manjal",
+        "kasthuri manjal",
+        "kasthuri manjal powder",
+        "kasturi turmeric",
+        "கஸ்தூரி மஞ்சள்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Leeks",
+      "aliases": [
+        "leek",
+        "leeks stalk"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Lemon",
+      "aliases": [
+        "lemons",
+        "elumichai",
+        "elumichai pazham",
+        "எலுமிச்சை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Mango Ginger",
+      "aliases": [
+        "mango inji",
+        "manga inji",
+        "mangoinji",
+        "maa inji",
+        "மாங்காய் இஞ்சி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Mango ginger ale",
+      "aliases": [
+        "mango ginger ale drink",
+        "mango gingerale"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Methi Keerai",
+      "aliases": [
+        "methi",
+        "methi leaves",
+        "fenugreek leaves",
+        "venthaya keerai",
+        "vendhaya keerai",
+        "வெந்தயக்கீரை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Mint",
+      "aliases": [
+        "pudina",
+        "puthina",
+        "mint leaves",
+        "புதினா"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Mushroom meaty",
+      "aliases": [
+        "meaty mushroom",
+        "meaty mushrooms",
+        "mushroom meaty"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Mushroom mixed",
+      "aliases": [
+        "mixed mushroom",
+        "mixed mushrooms",
+        "mushroom mix"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Nilgiri Oolong tea kambucha",
+      "aliases": [
+        "nilgiri oolong kombucha",
+        "oolong kombucha",
+        "oolong tea kombucha",
+        "nilgiri oolong tea kombucha",
+        "nilgiri oolong kambucha",
+        "oolong kambucha"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Oolong Tea",
+      "aliases": [
+        "oolong",
+        "oolong tea powder"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Palak Keerai",
+      "aliases": [
+        "palak",
+        "spinach",
+        "palak spinach",
+        "palak leaves",
+        "pasalai keerai",
+        "பாலக்கீரை",
+        "பசலைக்கீரை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Paneer",
+      "aliases": [
+        "panneer",
+        "cottage cheese",
+        "பனீர்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Papaya Raw",
+      "aliases": [
+        "raw papaya",
+        "green papaya",
+        "papaya green",
+        "papaya kai",
+        "பப்பாளி காய்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Potato",
+      "aliases": [
+        "potatoes",
+        "urulai",
+        "urulaikizhangu",
+        "urulai kizhangu",
+        "aloo",
+        "உருளைக்கிழங்கு"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Probiotic cola - nutmeg fruit",
+      "aliases": [
+        "probiotic cola",
+        "nutmeg cola",
+        "nutmeg fruit cola",
+        "probiotic nutmeg cola"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Red rice",
+      "aliases": [
+        "red rice raw",
+        "sivappu arisi",
+        "சிவப்பு அரிசி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Roman Lettuce",
+      "aliases": [
+        "romaine lettuce",
+        "romaine",
+        "roman lettuces",
+        "cos lettuce"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Rose tea",
+      "aliases": [
+        "rose petal tea",
+        "rose tea powder"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Star fruit",
+      "aliases": [
+        "starfruit",
+        "star fruits",
+        "starfruits",
+        "carambola"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Turkey berry",
+      "aliases": [
+        "turkey berries",
+        "sundakkai",
+        "sundaikai",
+        "sundakai",
+        "சுண்டைக்காய்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Turmeric powder",
+      "aliases": [
+        "turmeric",
+        "manjal powder",
+        "manjal thool",
+        "haldi powder",
+        "மஞ்சள் தூள்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Turnip",
+      "aliases": [
+        "turnips",
+        "டர்னிப்"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "kg",
+      "aliases": [
+        "கிலோ",
+        "kilo gram"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "100g",
+      "aliases": [
+        "கிராம்",
+        "grm"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "piece",
+      "aliases": [
+        "nos",
+        "numbers",
+        "எண்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "bunch",
+      "aliases": [
+        "kattu",
+        "கட்டு"
+      ],
       "language": "mixed"
     }
   ],
-  "updated_at": "2026-01-01T00:00:00.000Z",
+  "updated_at": "2026-10-09T15:06:02.254Z",
   "updated_by": "system"
 }
