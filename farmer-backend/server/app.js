@@ -11,7 +11,7 @@ const { initFirebase } = require('./config/firebase')
 const authVerify = require('./plugins/authVerify')
 const stateMachineGuard = require('./plugins/stateMachineGuard')
 const { registerErrorHandler } = require('./lib/errors')
-const { reloadSynonymCache } = require('./modules/parser')
+const { reloadSynonymCache, getSynonymCache } = require('./modules/parser')
 
 const DB_NAME = 'farmer-market'
 
@@ -70,6 +70,7 @@ async function buildApp (opts = {}) {
     ['./routes/deliveryRoutes', '/api/v1'],
     ['./routes/reconciliationRoutes', '/api/v1'],
     ['./routes/sseRoutes', '/api/v1'],
+    ['./routes/adminRoutes', '/api/v1'],
     ['./routes/webhookRoutes', null]
   ]
 
@@ -100,6 +101,12 @@ async function buildApp (opts = {}) {
 
   fastify.addHook('onReady', async () => {
     await reloadSynonymCache(fastify.db)
+    if (getSynonymCache().length === 0) {
+      fastify.log.warn(
+        'config/synonyms is missing or empty — the parser will only match exact product names. ' +
+        'Run scripts/seed.js or insert the synonyms document, then POST /api/v1/admin/synonyms/reload.'
+      )
+    }
   })
 
   return fastify
