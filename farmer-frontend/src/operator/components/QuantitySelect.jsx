@@ -3,8 +3,7 @@ import { UNIT_TYPES } from '../../shared/lib/constants.js'
 /**
  * Quantity choices per unit. Decimals only where they make sense:
  *   kg     → quarter-kg steps (0.25, 0.5, 0.75, 1 …), whole kg beyond 5
- *   100g   → half steps (0.5 = 50 g), whole units beyond 5
- *   piece / bunch → whole numbers
+ *   100g / piece / bunch → whole numbers
  * No unit chosen yet → the kg list, so a decimal is never blocked.
  *
  * @param {string} unit
@@ -17,7 +16,7 @@ export function quantityOptionsForUnit (unit) {
     return out
   }
   if (unit === UNIT_TYPES.PIECE || unit === UNIT_TYPES.BUNCH) return range(1, 30, 1)
-  if (unit === UNIT_TYPES.GRAMS) return [...range(0.5, 5, 0.5), ...range(6, 20, 1)]
+  if (unit === UNIT_TYPES.GRAMS) return range(1, 20, 1)
   return [...range(0.25, 5, 0.25), ...range(6, 25, 1)]
 }
 
