@@ -113,6 +113,32 @@ describe('parseMessage — partial parse', () => {
   })
 })
 
+describe('parseMessage — quantity before a product that starts with a unit letter', () => {
+  const LIST = [
+    { product_id: 'prod-ginger', name_en: 'Ginger', name_ta: null, unit: '100g' },
+    { product_id: 'prod-garlic', name_en: 'Garlic', name_ta: null, unit: '100g' },
+    { product_id: 'prod-green-beans', name_en: 'Green beans', name_ta: null, unit: 'kg' },
+    { product_id: 'prod-gourd', name_en: 'Gourd', name_ta: null, unit: 'piece' }
+  ]
+
+  it.each([
+    ['2 ginger', 'prod-ginger'],
+    ['2 garlic', 'prod-garlic'],
+    ['2 green beans', 'prod-green-beans'],
+    ['3 gourd', 'prod-gourd']
+  ])('"%s" is not read as "2 g" + a broken product name', (message, productId) => {
+    const [r] = parse(message, LIST, [])
+    expect(r.productId).toBe(productId)
+    expect(r.quantity).toBe(Number(message.split(' ')[0]))
+  })
+
+  it('real attached units still work', () => {
+    expect(parse('2g ginger', LIST, [])[0]).toMatchObject({ productId: 'prod-ginger', quantity: 2, unit: '100g' })
+    expect(parse('2 gm ginger', LIST, [])[0]).toMatchObject({ productId: 'prod-ginger', quantity: 2, unit: '100g' })
+    expect(parse('1 kg green beans', LIST, [])[0]).toMatchObject({ productId: 'prod-green-beans', quantity: 1, unit: 'kg' })
+  })
+})
+
 describe('parseMessage — unknown tokens / manual required', () => {
   it('product not in produce list → confidence manual_required, productId null', () => {
     const results = parse('spinach 2 kg')

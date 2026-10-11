@@ -773,6 +773,21 @@ export const translations = {
   'registration.save_success_customer': { en: 'Customer saved.', ta: 'வாடிக்கையாளர் சேமிக்கப்பட்டார்.' },
   'registration.save_success_farmer': { en: 'Farmer saved.', ta: 'விவசாயி சேமிக்கப்பட்டார்.' },
   'registration.save_success_product': { en: 'Product saved.', ta: 'பொருள் சேமிக்கப்பட்டது.' },
+  // TA: REVIEW REQUIRED (all catalogue.synonym_gap.* Tamil strings)
+  'catalogue.synonym_gap.title': {
+    en: '{{count}} new product(s) have no synonyms yet — customers\' own spellings may not be recognised.',
+    ta: '{{count}} புதிய பொருட்களுக்கு இன்னும் ஒத்த சொற்கள் இல்லை — வாடிக்கையாளர்களின் எழுத்துப்பிழைகள் அடையாளம் காணப்படாமல் போகலாம்.',
+  },
+  'catalogue.synonym_gap.ask': {
+    en: 'Ask the IT manager to run the synonym update.',
+    ta: 'ஒத்த சொற்கள் புதுப்பிப்பை இயக்க IT மேலாளரிடம் கேளுங்கள்.',
+  },
+  'catalogue.synonym_gap.copy': { en: 'Copy request for IT manager', ta: 'IT மேலாளருக்கான கோரிக்கையை நகலெடு' },
+  'catalogue.synonym_gap.copied': { en: 'Copied', ta: 'நகலெடுக்கப்பட்டது' },
+  'catalogue.synonym_gap.request_text': {
+    en: 'Hi, please run the synonym update for the GudMart product catalogue. New products without synonyms ({{count}}): {{names}}',
+    ta: 'வணக்கம், GudMart பொருள் பட்டியலுக்கான ஒத்த சொற்கள் புதுப்பிப்பை இயக்கவும். ஒத்த சொற்கள் இல்லாத புதிய பொருட்கள் ({{count}}): {{names}}',
+  },
   'nav.customers': { en: 'Customers', ta: 'வாடிக்கையாளர்கள்' },
   'nav.farmers': { en: 'Farmers', ta: 'விவசாயிகள்' },
   'nav.catalogue': { en: 'Catalogue', ta: 'பட்டியல்' },
