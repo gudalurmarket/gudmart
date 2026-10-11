@@ -97,19 +97,59 @@ describe('parseMessage — partial parse', () => {
     expect(results[0].confidence).toBe('partial')
   })
 
-  it('product matched but no unit → confidence partial', () => {
-    const results = parse('tomato 2')
-    expect(results[0].productId).toBe('prod-tomato')
-    expect(results[0].unit).toBeNull()
-    expect(results[0].confidence).toBe('partial')
-  })
-
-  it('product matched, no quantity, no unit → confidence partial', () => {
+  it('product matched, no quantity, no unit → unit defaults to the listed unit, confidence partial', () => {
     const results = parse('tomato')
     expect(results[0].productId).toBe('prod-tomato')
     expect(results[0].quantity).toBeNull()
-    expect(results[0].unit).toBeNull()
+    expect(results[0].unit).toBe('kg')
     expect(results[0].confidence).toBe('partial')
+  })
+
+  it('product not matched → unit stays null', () => {
+    const results = parse('dragonfruit 2')
+    expect(results[0].productId).toBeNull()
+    expect(results[0].unit).toBeNull()
+  })
+})
+
+describe('parseMessage — unit defaults to the produce list unit', () => {
+  const LIST = [
+    ...PRODUCE_LIST,
+    { product_id: 'prod-cabbage-red', name_en: 'Cabbage Red', name_ta: null, unit: 'kg' },
+    { product_id: 'prod-celery', name_en: 'Celery', name_ta: null, unit: 'bunch' },
+    { product_id: 'prod-lemon', name_en: 'Lemon', name_ta: null, unit: 'piece' },
+    { product_id: 'prod-ginger', name_en: 'Ginger', name_ta: null, unit: '100g' }
+  ]
+
+  it('"Cabbage red 1" → kg (the listed unit), clean', () => {
+    const [r] = parse('Cabbage red 1', LIST)
+    expect(r.productId).toBe('prod-cabbage-red')
+    expect(r.quantity).toBe(1)
+    expect(r.unit).toBe('kg')
+    expect(r.confidence).toBe('clean')
+  })
+
+  it('"Celery 1" → bunch, clean', () => {
+    const [r] = parse('Celery 1', LIST)
+    expect(r.productId).toBe('prod-celery')
+    expect(r.unit).toBe('bunch')
+    expect(r.confidence).toBe('clean')
+  })
+
+  it('defaults 100g and piece products too', () => {
+    expect(parse('ginger 2', LIST)[0].unit).toBe('100g')
+    expect(parse('lemon 4', LIST)[0].unit).toBe('piece')
+  })
+
+  it('a unit written in the message wins over the listed unit', () => {
+    const [r] = parse('celery 2 kg', LIST)
+    expect(r.unit).toBe('kg')
+  })
+
+  it('keeps decimal quantities with the defaulted unit', () => {
+    const [r] = parse('cabbage red 0.5', LIST)
+    expect(r.quantity).toBe(0.5)
+    expect(r.unit).toBe('kg')
   })
 })
 

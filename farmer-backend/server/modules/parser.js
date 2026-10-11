@@ -329,7 +329,7 @@ function matchProduct (productText, produceList, synonymTable) {
 /**
  * @param {{ product_id: string, unit: string } | null} match
  * @param {{ value: number, rawToken: string } | null} qty
- * @param {{ canonical: string, rawToken: string } | null} unit
+ * @param {string | null} unit — written in the message, or defaulted from the produce list
  * @returns {'clean' | 'partial' | 'manual_required'}
  */
 function deriveConfidence (match, qty, unit) {
@@ -415,8 +415,10 @@ function parseSegment (segment, produceList, synonymTable) {
 
   const match = matchProduct(rawProductText, produceList, synonymTable)
   const productId = match?.product_id ?? null
-  const unit = unitResult?.canonical ?? null
-  const confidence = deriveConfidence(match, qty, unitResult)
+  // No unit written ("Celery 1"): fall back to the unit this product is sold in
+  // this week. A product has exactly one unit per week, so it is unambiguous.
+  const unit = unitResult?.canonical ?? match?.unit ?? null
+  const confidence = deriveConfidence(match, qty, unit)
 
   const suggestion = productId == null
     ? buildSimilaritySuggestion(rawProductText, produceList)
