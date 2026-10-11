@@ -49,7 +49,8 @@ function buildQtyUnitCombinedPattern () {
     .sort((a, b) => b.length - a.length)
     .map(escapeRegex)
     .join('|')
-  return new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${unitPart})?`, 'i')
+  // The unit must end at a word boundary, otherwise "2 ginger" reads "2 g" + "inger".
+  return new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:(${unitPart})(?![\\p{L}\\p{M}]))?`, 'iu')
 }
 
 const QTY_UNIT_COMBINED_PATTERN = buildQtyUnitCombinedPattern()

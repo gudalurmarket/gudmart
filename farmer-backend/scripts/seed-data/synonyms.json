@@ -7,7 +7,9 @@
         "avocado",
         "avocados",
         "avacados",
-        "butter fruit"
+        "butter fruit",
+        "அவகேடோ",
+        "avakado"
       ],
       "language": "mixed"
     },
@@ -115,7 +117,8 @@
         "beet",
         "beets",
         "beetroots",
-        "பீட்ரூட்"
+        "பீட்ரூட்",
+        "beetroot kilangu"
       ],
       "language": "mixed"
     },
@@ -155,6 +158,18 @@
         "ப்ரோக்கோலி"
       ],
       "language": "mixed"
+    },
+    {
+      "canonical": "Brussels sprouts",
+      "aliases": [
+        "brussel sprouts",
+        "brussels sprout",
+        "brussel sprout",
+        "brussels",
+        "brussel",
+        "பிரசல்ஸ் ஸ்ப்ரவுட்ஸ்"
+      ],
+      "language": "en"
     },
     {
       "canonical": "Butter beans",
@@ -204,6 +219,18 @@
       "language": "en"
     },
     {
+      "canonical": "celery",
+      "aliases": [
+        "celery leaves",
+        "celery stalk",
+        "celery stalks",
+        "celeri",
+        "selari",
+        "செலரி"
+      ],
+      "language": "mixed"
+    },
+    {
       "canonical": "Chamomile tea",
       "aliases": [
         "chamomile",
@@ -232,7 +259,21 @@
         "kanthari chilli",
         "kandhari",
         "kandhari chilli",
-        "bird eye chilli"
+        "bird eye chilli",
+        "காந்தாரி மிளகாய்",
+        "kanthari milagai"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Chinese cabbage",
+      "aliases": [
+        "chinese cabbages",
+        "china cabbage",
+        "napa cabbage",
+        "chinese muttaikose",
+        "chinese muttaikos",
+        "சைனீஸ் முட்டைகோஸ்"
       ],
       "language": "mixed"
     },
@@ -273,7 +314,8 @@
       "aliases": [
         "poondu",
         "garlic pods",
-        "பூண்டு"
+        "பூண்டு",
+        "poondu pallu"
       ],
       "language": "mixed"
     },
@@ -291,6 +333,29 @@
       "aliases": [
         "greentea",
         "green tea leaves"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "green tea bottle",
+      "aliases": [
+        "greentea bottle",
+        "green tea bottled",
+        "bottle green tea",
+        "green tea bottles",
+        "கிரீன் டீ பாட்டில்"
+      ],
+      "language": "en"
+    },
+    {
+      "canonical": "Green tea pouch",
+      "aliases": [
+        "green tea pouches",
+        "greentea pouch",
+        "green tea bag",
+        "green tea bags",
+        "pouch green tea",
+        "கிரீன் டீ பவுச்"
       ],
       "language": "en"
     },
@@ -342,9 +407,11 @@
       "canonical": "Leeks",
       "aliases": [
         "leek",
-        "leeks stalk"
+        "leeks stalk",
+        "லீக்ஸ்",
+        "leek stalk"
       ],
-      "language": "en"
+      "language": "mixed"
     },
     {
       "canonical": "Lemon",
@@ -353,6 +420,46 @@
         "elumichai",
         "elumichai pazham",
         "எலுமிச்சை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Lemon big",
+      "aliases": [
+        "big lemon",
+        "big lemons",
+        "large lemon",
+        "lemon large",
+        "lemon bigger",
+        "periya elumichai",
+        "big elumichai",
+        "பெரிய எலுமிச்சை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Lemon small",
+      "aliases": [
+        "small lemon",
+        "small lemons",
+        "lemon little",
+        "chinna elumichai",
+        "small elumichai",
+        "சின்ன எலுமிச்சை"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Manathakali keerai",
+      "aliases": [
+        "manathakkali keerai",
+        "manathakali",
+        "manathakkali",
+        "manatakkali keerai",
+        "manathakali leaves",
+        "black nightshade",
+        "மணத்தக்காளி கீரை",
+        "மணத்தக்காளி"
       ],
       "language": "mixed"
     },
@@ -383,7 +490,8 @@
         "fenugreek leaves",
         "venthaya keerai",
         "vendhaya keerai",
-        "வெந்தயக்கீரை"
+        "வெந்தயக்கீரை",
+        "vendayakeerai"
       ],
       "language": "mixed"
     },
@@ -491,6 +599,41 @@
       "language": "en"
     },
     {
+      "canonical": "Pumpkin",
+      "aliases": [
+        "pumpkins",
+        "parangikai",
+        "parangi kai",
+        "பரங்கிக்காய்"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Radish white",
+      "aliases": [
+        "white radish",
+        "radish",
+        "radishes",
+        "mullangi",
+        "mooli",
+        "daikon",
+        "முள்ளங்கி"
+      ],
+      "language": "mixed"
+    },
+    {
+      "canonical": "Raw jack powder",
+      "aliases": [
+        "raw jackfruit powder",
+        "jackfruit powder",
+        "jack powder",
+        "raw jack flour",
+        "pala kai powder",
+        "பலாக்காய் பொடி"
+      ],
+      "language": "mixed"
+    },
+    {
       "canonical": "Red rice",
       "aliases": [
         "red rice raw",
@@ -591,6 +734,6 @@
       "language": "mixed"
     }
   ],
-  "updated_at": "2026-10-09T15:06:02.254Z",
+  "updated_at": "2026-10-11T04:11:36.252Z",
   "updated_by": "system"
 }

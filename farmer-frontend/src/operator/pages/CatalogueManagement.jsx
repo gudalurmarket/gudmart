@@ -8,6 +8,7 @@ import { apiGet, apiPatch, apiPost } from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { UNIT_TYPES } from '../../shared/lib/constants.js'
 import useWeekState from '../../shared/hooks/useWeekState.js'
+import SynonymGapNotice from '../components/SynonymGapNotice.jsx'
 import { CONFIRM_ARM_DELAY_MS } from '../../shared/lib/constants.js'
 
 const TOAST_DISMISS_MS = 4000
@@ -441,6 +442,7 @@ export default function CatalogueManagement () {
   const [modalMode, setModalMode] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
   const [pendingDeactivateId, setPendingDeactivateId] = useState(null)
+  const [noticeRefresh, setNoticeRefresh] = useState(0)
   const [toastKey, setToastKey] = useState(null)
   const toastTimer = useRef(null)
 
@@ -493,6 +495,7 @@ export default function CatalogueManagement () {
   const handleSaved = async () => {
     handleModalClose()
     await loadProducts()
+    setNoticeRefresh((n) => n + 1)
     showToast('registration.save_success_product')
   }
 
@@ -537,6 +540,8 @@ export default function CatalogueManagement () {
           {t('registration.catalogue.add_button')}
         </button>
       </div>
+
+      <SynonymGapNotice refreshKey={noticeRefresh} />
 
       {/* Show inactive toggle */}
       <div className="mb-4">
