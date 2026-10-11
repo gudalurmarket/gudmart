@@ -111,7 +111,7 @@ describe('parseMessage', () => {
     expect(result[0]).toMatchObject({
       productId: 'prod-tomato',
       quantity: null,
-      unit: null,
+      unit: 'kg', // defaulted from the produce list
       confidence: 'partial'
     })
   })

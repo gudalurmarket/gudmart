@@ -21,6 +21,7 @@ import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { ORDER_STATUS, WEEK_STATES } from '../../shared/lib/constants.js'
 import { formatINR, formatINROptional } from '../../shared/lib/paise.js'
+import QuantitySelect from '../components/QuantitySelect.jsx'
 
 const TOAST_DISMISS_MS = 6000
 
@@ -365,14 +366,12 @@ function EditOrderModal ({
                   </div>
                   <div className="w-20">
                     <label className="text-xs text-[--color-text-secondary]">{t('field.quantity')}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step="any"
+                    <QuantitySelect
                       value={row.orderedQty}
-                      onChange={(e) =>
-                        updateRow(index, { orderedQty: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-[--color-border] px-2 py-1.5 text-sm"
+                      unit={row.unit}
+                      onChange={(orderedQty) => updateRow(index, { orderedQty })}
+                      ariaLabel={t('field.quantity')}
+                      className="mt-1 w-full min-h-[44px] rounded-lg border border-[--color-border] px-2 py-1.5 text-sm"
                     />
                   </div>
                   <div className="w-20">
@@ -431,13 +430,11 @@ function EditOrderModal ({
               ))}
             </select>
             <div className="flex gap-2">
-              <input
-                type="number"
-                min={0}
-                step="any"
+              <QuantitySelect
                 value={addQty}
-                onChange={(e) => setAddQty(e.target.value)}
-                placeholder={t('field.quantity')}
+                unit={addUnit}
+                onChange={setAddQty}
+                ariaLabel={t('field.quantity')}
                 className="flex-1 rounded-lg border border-[--color-border] px-3 py-2 text-sm"
               />
               <select

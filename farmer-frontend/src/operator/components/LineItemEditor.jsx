@@ -3,6 +3,7 @@ import { LineItemRowIcon, Plus, X } from '../../shared/components/AppIcons.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { UNIT_TYPES } from '../../shared/lib/constants.js'
 import { formatINR } from '../../shared/lib/paise.js'
+import QuantitySelect from './QuantitySelect.jsx'
 
 function interpolate (template, vars) {
   return Object.entries(vars).reduce(
@@ -167,12 +168,11 @@ export default function LineItemEditor ({ lineItems, produceList, onChange }) {
                   <label className="mb-1 block text-xs text-[--color-text-secondary]">
                     {t('field.quantity')}
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
+                  <QuantitySelect
                     value={row.orderedQty}
-                    onChange={(e) => updateLine(index, { orderedQty: e.target.value })}
+                    unit={row.unit}
+                    onChange={(orderedQty) => updateLine(index, { orderedQty })}
+                    ariaLabel={t('field.quantity')}
                     className="w-full min-h-[44px] rounded-md border border-[--color-border] px-2 py-2 text-sm focus:border-[--color-primary] focus:outline-none focus:ring-1 focus:ring-[--color-primary]"
                   />
                 </div>
