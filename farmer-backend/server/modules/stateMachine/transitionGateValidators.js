@@ -179,11 +179,21 @@ async function validateReconciliationToClosed (weekId) {
   const allLocalFarmerIds = [...new Set([...assignedLocalFarmers, ...inboundLocalFarmers])]
 
   if (allLocalFarmerIds.length > 0) {
-    const paidFarmerIds = new Set(
-      inboundRows
+    // Preorder-only local farmers have no inbound rows; their payment is recorded
+    // on their FarmerPayment row instead.
+    const paidPreorderRows = await FarmerPayment.find({
+      week_id: weekId,
+      farmer_id: { $in: allLocalFarmerIds },
+      status: 'paid'
+    })
+      .select('farmer_id')
+      .lean()
+    const paidFarmerIds = new Set([
+      ...inboundRows
         .filter(row => (row.payment_amount_cash ?? 0) + (row.payment_amount_bank ?? 0) > 0)
-        .map(row => row.farmer_id)
-    )
+        .map(row => row.farmer_id),
+      ...paidPreorderRows.map(row => row.farmer_id)
+    ])
 
     for (const farmerId of allLocalFarmerIds) {
       if (!paidFarmerIds.has(farmerId)) {

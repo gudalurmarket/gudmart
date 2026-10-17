@@ -288,6 +288,11 @@ async function reconciliationAndMoreRoutes (fastify) {
         if (preorderItems.length === 0 && surplusItems.length === 0) return null
         const preorderComponent = computePreorderComponent(farmerId, assignments, priceByProduct)
         const surplusComponent = computeSurplusComponent(farmerId, inboundRows)
+        const inboundPaid = inboundRows.some(row =>
+          row.farmer_id === farmerId &&
+          (row.payment_amount_cash ?? 0) + (row.payment_amount_bank ?? 0) > 0)
+        const preorderPaid = paymentRows.some(p =>
+          p.farmer_id === farmerId && p.status === 'paid')
         return {
           farmerId,
           farmerName: farmerNameById.get(farmerId) ?? farmerId,
@@ -295,7 +300,8 @@ async function reconciliationAndMoreRoutes (fastify) {
           surplusItems,
           preorderComponent,
           surplusComponent,
-          totalAmountDue: preorderComponent + surplusComponent
+          totalAmountDue: preorderComponent + surplusComponent,
+          paymentComplete: inboundPaid || preorderPaid
         }
       })
       .filter(Boolean)
@@ -418,12 +424,14 @@ async function reconciliationAndMoreRoutes (fastify) {
   }, async (request) => {
     const { weekId } = request.params
 
-    const [inboundRows, assignments, produceItems, localFarmers] = await Promise.all([
+    const [inboundRows, assignments, produceItems, localFarmers, paidPreorderRows] = await Promise.all([
       LocalFarmerInbound.find({ week_id: weekId }).lean(),
       FarmerOrderAssignment.find({ week_id: weekId }).lean(),
       WeeklyProduceItem.find({ week_id: weekId }).select('product_id price_per_unit unit').lean(),
-      Farmer.find({ farmer_type: 'local', active: true }).select('farmer_id name').lean()
+      Farmer.find({ farmer_type: 'local', active: true }).select('farmer_id name').lean(),
+      FarmerPayment.find({ week_id: weekId, status: 'paid' }).select('farmer_id').lean()
     ])
+    const preorderPaidIds = new Set(paidPreorderRows.map(p => p.farmer_id))
 
     const localFarmerIdSet = new Set(localFarmers.map(f => f.farmer_id))
     const farmerIds = [...new Set([
@@ -515,11 +523,70 @@ async function reconciliationAndMoreRoutes (fastify) {
         totalAmountDue: preorderComponent + surplusComponent,
         paymentAmountCash: group.paymentAmountCash,
         paymentAmountBank: group.paymentAmountBank,
-        paymentComplete: (group.paymentAmountCash + group.paymentAmountBank) > 0
+        paymentComplete: (group.paymentAmountCash + group.paymentAmountBank) > 0 ||
+          preorderPaidIds.has(group.farmerId)
       }
     })
 
     return { localFarmerPayments }
+  })
+
+  // Records payment for a local farmer with preorder deliveries only (no inbound rows).
+  fastify.patch('/weeks/:weekId/localfarmer-payments/:farmerId/preorder-payment', {
+    config: { action: 'record_local_farmer_payment' },
+    schema: {
+      params: {
+        type: 'object',
+        required: ['weekId', 'farmerId'],
+        properties: {
+          weekId: { type: 'string' },
+          farmerId: { type: 'string' }
+        }
+      },
+      body: {
+        type: 'object',
+        required: ['amountPaid', 'channel'],
+        additionalProperties: false,
+        properties: {
+          amountPaid: integerPaiseSchema,
+          channel: { type: 'string', enum: PAYMENT_CHANNELS }
+        }
+      }
+    }
+  }, async (request) => {
+    const { weekId, farmerId } = request.params
+    const { amountPaid, channel } = request.body
+
+    if (amountPaid <= 0) {
+      throw new AppError('VALIDATION_ERROR', 400, 'amountPaid must be greater than zero', {})
+    }
+
+    const farmer = await Farmer.findOne({ farmer_id: farmerId, farmer_type: 'local' })
+      .select('farmer_id')
+      .lean()
+    if (!farmer) {
+      throw new AppError('FARMER_NOT_FOUND', 404, `Local farmer not found: ${farmerId}`, {})
+    }
+
+    await bootstrapFarmerPayments(weekId, request.user.uid)
+    const payment = await FarmerPayment.findOne({ week_id: weekId, farmer_id: farmerId })
+    if (!payment) {
+      throw new AppError(
+        'PAYMENT_NOT_FOUND',
+        404,
+        `No preorder delivery to pay for farmer: ${farmerId}`,
+        { farmerId, weekId }
+      )
+    }
+
+    payment.status = 'paid'
+    payment.amount_paid = amountPaid
+    payment.outstanding = Math.max(0, payment.amount_due - amountPaid)
+    payment.channel = channel
+    payment.recorded_at = new Date()
+    await payment.save()
+
+    return { ok: true, farmerId, amountPaid, channel }
   })
 
   fastify.patch('/weeks/:weekId/localfarmer-inbound/:inboundId/payment', {

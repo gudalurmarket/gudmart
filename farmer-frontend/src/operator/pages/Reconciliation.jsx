@@ -677,6 +677,9 @@ export default function Reconciliation() {
       setPriceDifferences(diffs)
       setLocalFarmerItems(lfItems)
       setLocalFarmerPayments(lfPayments)
+      setLocalFarmerPaidState(
+        Object.fromEntries(lfPayments.filter((g) => g.paymentComplete).map((g) => [g.farmerId, true])),
+      )
 
       setPayments(paymentsData.payments ?? [])
 
@@ -870,8 +873,23 @@ export default function Reconciliation() {
       const items = surplusItemsForGroup(farmerGroup)
 
       if (items.length === 0) {
-        setLocalFarmerPaidState((prev) => ({ ...prev, [farmerGroup.farmerId]: true }))
-        showToast('toast.local_farmer_payment_saved')
+        setSavingLocalFarmerId(farmerGroup.farmerId)
+        setLocalFarmerErrors((prev) => ({ ...prev, [farmerGroup.farmerId]: null }))
+        try {
+          await apiPatch(
+            `/api/v1/weeks/${weekId}/localfarmer-payments/${farmerGroup.farmerId}/preorder-payment`,
+            { amountPaid: amountPaidPaise, channel: isCash ? 'cash' : 'upi' },
+          )
+          setLocalFarmerPaidState((prev) => ({ ...prev, [farmerGroup.farmerId]: true }))
+          showToast('toast.local_farmer_payment_saved')
+        } catch (err) {
+          setLocalFarmerErrors((prev) => ({
+            ...prev,
+            [farmerGroup.farmerId]: apiErrorTranslationKey(err),
+          }))
+        } finally {
+          setSavingLocalFarmerId(null)
+        }
         return
       }
 
