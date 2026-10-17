@@ -4,6 +4,7 @@ import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { TransitionGateBlockedError, apiGet, apiPatch, apiPost } from '../../shared/lib/api.js'
+import { notifyActiveWeekChanged } from '../../shared/hooks/useWeekState.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { PAYMENT_CHANNELS, UNIT_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
@@ -1015,6 +1016,7 @@ export default function Reconciliation() {
     try {
       await apiPatch(`/api/v1/weeks/${weekId}/state`, { targetState: 'closed' })
       setCurrentState('closed')
+      notifyActiveWeekChanged()
       setCloseWeekConfirm(false)
       showToast('toast.week_closed')
     } catch (err) {
