@@ -637,3 +637,58 @@ describe('WalletEngine', () => {
     })
   })
 })
+
+describe('zero-wallet-balances script', () => {
+  const { zeroWalletBalances } = require('../../scripts/zero-wallet-balances')
+  // other suites share this database; only touch this suite's customers
+  const ONLY_TEST_CUSTOMERS = { created_by: TEST_CREATOR }
+
+  beforeEach(async () => {
+    await Customer.deleteMany({ created_by: TEST_CREATOR })
+    await WalletTransaction.deleteMany({ created_by: 'system-zero-wallets' })
+  })
+
+  it('dry run changes nothing', async () => {
+    const credit = await createCustomer(5000)
+    const result = await zeroWalletBalances({ confirm: false, runId: 'dry', filter: ONLY_TEST_CUSTOMERS })
+
+    expect(result.adjusted).toBe(0)
+    expect((await Customer.findOne({ customer_id: credit.customer_id }).lean()).wallet_balance).toBe(5000)
+  })
+
+  it('zeroes positive and negative balances, and can be run again', async () => {
+    const credit = await createCustomer(5000)
+    const debt = await createCustomer(-3000)
+    const clear = await createCustomer(0)
+
+    const first = await zeroWalletBalances({ confirm: true, runId: 'r1', filter: ONLY_TEST_CUSTOMERS })
+    expect(first.remainingNonZero).toBe(0)
+
+    const balanceOf = async (c) =>
+      (await Customer.findOne({ customer_id: c.customer_id }).lean()).wallet_balance
+    expect(await balanceOf(credit)).toBe(0)
+    expect(await balanceOf(debt)).toBe(0)
+    expect(await balanceOf(clear)).toBe(0)
+
+    const creditTxn = await WalletTransaction.findOne({ customer_id: credit.customer_id }).lean()
+    const debtTxn = await WalletTransaction.findOne({ customer_id: debt.customer_id }).lean()
+    expect(creditTxn.type).toBe('manual_adjustment')
+    expect(creditTxn.running_balance).toBe(0)
+    expect(debtTxn.running_balance).toBe(0)
+    expect(await WalletTransaction.countDocuments({ customer_id: clear.customer_id })).toBe(0)
+
+    // later, balances move again; a second run (new run id) zeroes them again
+    await WalletEngine.topUp({
+      idempotencyKey: randomUUID(),
+      customerId: credit.customer_id,
+      amount: 700,
+      channel: 'cash',
+      weekId: WEEK_ID,
+      createdBy: OPERATOR
+    })
+    const second = await zeroWalletBalances({ confirm: true, runId: 'r2', filter: ONLY_TEST_CUSTOMERS })
+    expect(second.adjusted).toBe(1)
+    expect(await balanceOf(credit)).toBe(0)
+  })
+})
+
