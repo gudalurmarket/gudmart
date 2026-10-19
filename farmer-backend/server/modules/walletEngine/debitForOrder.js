@@ -1,10 +1,7 @@
 'use strict'
 
-const Customer = require('../../models/Customer')
 const WalletTransaction = require('../../models/WalletTransaction')
 const {
-  CustomerNotFoundError,
-  WalletInsufficientError,
   WalletDuplicateOperationError
 } = require('../../lib/errors')
 const {
@@ -13,7 +10,7 @@ const {
   assertIdempotencyKey,
   buildTxnDoc,
   withWalletSession,
-  applyGatedDebitMutation,
+  applyDebitMutation,
   resolveIdempotentDuplicate,
   buildOrderDebitReferenceNote
 } = require('./_helpers')
@@ -22,7 +19,7 @@ const {
  * debitForOrder — debit wallet at order confirmation.
  *
  * Spec: B2 Wallet Engine §4.2, §5.6
- * - Atomic gated debit via wallet_balance >= amount (pipeline $subtract)
+ * - Atomic debit (pipeline $subtract); no floor — a negative balance is what the customer owes
  * - At most one order_debit per order_id (B2 §4.2)
  */
 async function debitForOrder ({
@@ -69,7 +66,7 @@ async function debitForOrder ({
       )
     }
 
-    return applyGatedDebitMutation(activeSession, {
+    return applyDebitMutation(activeSession, {
       idempotencyKey,
       customerId,
       amount,
@@ -84,18 +81,7 @@ async function debitForOrder ({
         reference_note: orderRef,
         running_balance: runningBalance,
         created_by: createdBy
-      }),
-      onInsufficient: async (insufficientSession) => {
-        const exists = await Customer.exists({ customer_id: customerId })
-          .session(insufficientSession)
-        if (!exists) {
-          throw new CustomerNotFoundError(`Customer not found: ${customerId}`, { customerId })
-        }
-        throw new WalletInsufficientError(
-          `Wallet balance insufficient for debit of ${amount} paise`,
-          { customerId, requiredPaise: amount, currentBalancePaise: null }
-        )
-      }
+      })
     })
   }
 

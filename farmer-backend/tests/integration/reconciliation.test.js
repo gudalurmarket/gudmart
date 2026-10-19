@@ -99,7 +99,7 @@ describe('POST /api/v1/weeks/:weekId/reconciliation/:diffId/confirm', () => {
     expect(debit.amount).toBe(10000)
   })
 
-  it('debits to zero and creates customer_due when overdelivery exceeds wallet', async () => {
+  it('takes the wallet negative when overdelivery exceeds wallet', async () => {
     await Customer.updateOne(
       { customer_id: customerId },
       { $set: { wallet_balance: 10000 } }
@@ -126,19 +126,18 @@ describe('POST /api/v1/weeks/:weekId/reconciliation/:diffId/confirm', () => {
     })
 
     const customer = await Customer.findOne({ customer_id: customerId }).lean()
-    expect(customer.wallet_balance).toBe(0)
+    expect(customer.wallet_balance).toBe(-20000)
 
     const debit = await WalletTransaction.findOne({
       customer_id: customerId,
       type: 'price_diff_debit'
     }).lean()
-    expect(debit.amount).toBe(10000)
+    expect(debit.amount).toBe(30000)
+    expect(debit.running_balance).toBe(-20000)
 
-    const due = await WalletTransaction.findOne({
+    expect(await WalletTransaction.countDocuments({
       customer_id: customerId,
       type: 'customer_due'
-    }).lean()
-    expect(due).not.toBeNull()
-    expect(due.amount).toBe(20000)
+    })).toBe(0)
   })
 })

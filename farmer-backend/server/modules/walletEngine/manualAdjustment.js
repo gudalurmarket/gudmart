@@ -1,9 +1,6 @@
 'use strict'
 
-const Customer = require('../../models/Customer')
 const {
-  CustomerNotFoundError,
-  WalletInsufficientError,
   WalletValidationError
 } = require('../../lib/errors')
 const {
@@ -13,12 +10,12 @@ const {
   buildTxnDoc,
   withWalletSession,
   applyCreditMutation,
-  applyGatedDebitMutation,
+  applyDebitMutation,
   resolveIdempotentDuplicate
 } = require('./_helpers')
 
 /**
- * manualAdjustment — corrective credit or gated debit (B2 §4.8).
+ * manualAdjustment — corrective credit or debit (B2 §4.8).
  */
 async function manualAdjustment ({
   idempotencyKey,
@@ -71,7 +68,7 @@ async function manualAdjustment ({
         })
       }
 
-      return applyGatedDebitMutation(session, {
+      return applyDebitMutation(session, {
         idempotencyKey,
         customerId,
         amount,
@@ -86,23 +83,7 @@ async function manualAdjustment ({
           reference_note: `direction:debit; reason:${trimmedReason}`,
           running_balance: runningBalance,
           created_by: createdBy
-        }),
-        onInsufficient: async (activeSession) => {
-          const fresh = await Customer.findOne({ customer_id: customerId })
-            .session(activeSession)
-            .lean()
-          if (!fresh) {
-            throw new CustomerNotFoundError(`Customer not found: ${customerId}`, { customerId })
-          }
-          throw new WalletInsufficientError(
-            `Wallet balance insufficient for debit of ${amount} paise`,
-            {
-              customerId,
-              requiredPaise: amount,
-              currentBalancePaise: fresh.wallet_balance
-            }
-          )
-        }
+        })
       })
     })
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { X } from '../../shared/components/AppIcons.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { ApiError, apiGet, apiPost } from '../../shared/lib/api.js'
-import { formatINR } from '../../shared/lib/paise.js'
+import { formatWalletBalance } from '../../shared/lib/paise.js'
 import LineItemEditor, {
   editorRowsToApiLineItems,
   parsedItemsToEditorRows,
@@ -148,7 +148,7 @@ export default function ManualOrderForm ({ weekId, produceList, onSuccess, onCan
                 <span className="flex-1 text-sm font-medium text-[--color-text-primary]">
                   {selectedCustomer.name}
                   <span className="ml-2 text-xs font-normal text-[--color-text-secondary]">
-                    {selectedCustomer.phone} &bull; {formatINR(selectedCustomer.walletBalance)}
+                    {selectedCustomer.phone} &bull; {formatWalletBalance(selectedCustomer.walletBalance, t('wallet.owes'))}
                   </span>
                 </span>
                 <button
@@ -192,7 +192,7 @@ export default function ManualOrderForm ({ weekId, produceList, onSuccess, onCan
                     <option value="" disabled hidden />
                     {filteredCustomers.map((c) => (
                       <option key={c.customerId} value={c.customerId}>
-                        {c.name} — {c.phone} ({formatINR(c.walletBalance)})
+                        {c.name} — {c.phone} ({formatWalletBalance(c.walletBalance, t('wallet.owes'))})
                       </option>
                     ))}
                   </select>

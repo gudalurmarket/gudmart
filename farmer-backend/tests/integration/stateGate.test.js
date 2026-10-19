@@ -50,44 +50,22 @@ describe('state machine gates (integration)', () => {
     expect(res.body.details.blockers[0].type).toBe('NO_PRODUCE_ITEMS')
   })
 
-  it('blocks open → locked when pending_payment orders exist', async () => {
+  it('open → locked is no longer blocked by a customer with a negative wallet balance', async () => {
     const { weekId } = await seedWeek('open')
-    const { customerId } = await seedCustomer(0)
-
-    await CustomerOrder.create({
-      order_id: `ord-${Date.now()}`,
-      week_id: weekId,
-      customer_id: customerId,
-      status: 'pending_payment',
-      fcfs_timestamp: new Date(),
-      order_value: 15000,
-      wallet_debited: 0,
-      balance_due: 15000,
-      balance_cleared: false,
-      line_items: [{
-        line_item_id: 'li-pending-1',
-        product_id: 'prod-x',
-        ordered_qty: 1,
-        delivered_qty: 1,
-        unit: 'kg',
-        price_per_unit: 15000,
-        line_value: 15000,
-        difference_confirmed: false
-      }],
-      created_by: 'test-operator-uid'
-    })
+    const { customerId } = await seedCustomer(-5000)
+    await seedProduceItem(weekId, 10000)
+    expect(customerId).toBeDefined()
 
     const res = await http()
       .patch(`/api/v1/weeks/${weekId}/state`)
       .set(authHeaders())
       .send({ targetState: 'locked' })
 
-    expect(res.status).toBe(409)
-    expect(res.body.code).toBe('TRANSITION_GATE_FAILED')
-    expect(res.body.details.blockers[0].type).toBe('PENDING_PAYMENT_ORDER')
+    expect(res.status).toBe(200)
+    expect(res.body.newState).toBe('locked')
   })
 
-  it('succeeds open → locked when no pending_payment orders', async () => {
+  it('succeeds open → locked', async () => {
     const { weekId } = await seedWeek('open')
     await seedProduceItem(weekId, 10000)
 

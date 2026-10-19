@@ -7,7 +7,7 @@ import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
 import { useLang } from '../../shared/lib/LangContext.jsx'
 import { apiGet, apiPatch, apiPost, DuplicatePhoneError } from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
-import { formatINR, parseINR } from '../../shared/lib/paise.js'
+import { formatINR, formatWalletBalance, parseINR } from '../../shared/lib/paise.js'
 import useWeekState from '../../shared/hooks/useWeekState.js'
 import { CONFIRM_ARM_DELAY_MS } from '../../shared/lib/constants.js'
 
@@ -205,8 +205,12 @@ function CustomerRow ({
         <p className="text-xs text-[--color-text-secondary]">{customer.phone}</p>
       </div>
 
-      <div className="shrink-0 text-sm font-medium text-[--color-primary]">
-        {formatINR(customer.walletBalance ?? 0)}
+      <div
+        className={`shrink-0 text-sm font-medium ${
+          (customer.walletBalance ?? 0) < 0 ? 'text-[--color-error]' : 'text-[--color-primary]'
+        }`}
+      >
+        {formatWalletBalance(customer.walletBalance ?? 0, t('wallet.owes'))}
       </div>
 
       <div className="shrink-0">

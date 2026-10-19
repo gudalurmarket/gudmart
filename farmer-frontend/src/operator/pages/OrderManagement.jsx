@@ -15,12 +15,11 @@ import {
   apiGet,
   apiPatch,
   apiPost,
-  WalletInsufficientError,
 } from '../../shared/lib/api.js'
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { formatMarketDate, pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { ORDER_STATUS, WEEK_STATES } from '../../shared/lib/constants.js'
-import { formatINR, formatINROptional } from '../../shared/lib/paise.js'
+import { formatINR, formatINROptional, formatSignedINR } from '../../shared/lib/paise.js'
 import QuantitySelect from '../components/QuantitySelect.jsx'
 
 const TOAST_DISMISS_MS = 6000
@@ -129,13 +128,6 @@ function getOrderValue (order) {
     }
   }
   return hasLineValue ? sum : null
-}
-
-function walletCoversOrder (order) {
-  const orderValue = getOrderValue(order)
-  if (orderValue == null || orderValue <= 0) return true
-  const walletBalance = getWalletBalance(order)
-  return walletBalance != null && walletBalance >= orderValue
 }
 
 function lineItemsHaveValues (lineItems) {
@@ -511,7 +503,6 @@ function OrderDetail ({
   const canConfirm =
     currentState === WEEK_STATES.OPEN
     && order.status === ORDER_STATUS.PENDING_PAYMENT
-  const walletReady = walletCoversOrder(order)
 
   return (
     <div className="mt-3 border-t border-[--color-border] pt-3">
@@ -570,7 +561,7 @@ function OrderDetail ({
           </span>
         </p>
         {walletBalance != null && (
-          <p className="text-[--color-text-secondary]">{formatINR(walletBalance)}</p>
+          <p className="text-[--color-text-secondary]">{formatSignedINR(walletBalance)}</p>
         )}
       </div>
 
@@ -598,15 +589,10 @@ function OrderDetail ({
         {canConfirm && (
           <button
             type="button"
-            disabled={!walletReady || confirming}
-            title={
-              walletReady
-                ? undefined
-                : t('order.confirm_via_topup_tooltip')
-            }
+            disabled={confirming}
             onClick={() => onConfirm(order)}
             className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-[--color-success-light] bg-[--color-success-light] px-3 py-2 text-sm font-medium text-[--color-success] ${
-              !walletReady || confirming
+              confirming
                 ? 'cursor-not-allowed opacity-50'
                 : 'hover:opacity-90'
             }`}
@@ -686,7 +672,6 @@ function PendingPaymentRow ({
   const canConfirm =
     currentState === WEEK_STATES.OPEN
     && order.status === ORDER_STATUS.PENDING_PAYMENT
-  const walletReady = walletCoversOrder(order)
 
   return (
     <div className="mb-2 rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3">
@@ -699,7 +684,7 @@ function PendingPaymentRow ({
         </div>
         <div className="text-right text-sm">
           {walletBalance != null && (
-            <p className="text-[--color-text-secondary]">{formatINR(walletBalance)}</p>
+            <p className="text-[--color-text-secondary]">{formatSignedINR(walletBalance)}</p>
           )}
           {shortfall != null && shortfall > 0 && (
             <p className="mt-1 text-[--color-warning]">
@@ -713,15 +698,10 @@ function PendingPaymentRow ({
       {canConfirm && (
         <button
           type="button"
-          disabled={!walletReady || confirming}
-          title={
-            walletReady
-              ? undefined
-              : t('order.confirm_via_topup_tooltip')
-          }
+          disabled={confirming}
           onClick={() => onConfirm(order)}
           className={`mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg bg-[--color-success-light] py-2 text-sm font-medium text-[--color-success] ${
-            !walletReady || confirming
+            confirming
               ? 'cursor-not-allowed opacity-50'
               : 'hover:opacity-90'
           }`}
@@ -948,17 +928,13 @@ export default function OrderManagement () {
     setEditSaving(true)
     setEditErrorKey(null)
     try {
-      const result = await apiPatch(
+      await apiPatch(
         `/api/v1/weeks/${weekId}/orders/${editOrder.orderId}`,
         { lineItems },
       )
       await fetchOrders(weekId)
       setEditOrder(null)
-      if (result.status === ORDER_STATUS.PENDING_PAYMENT) {
-        setToast({ key: 'toast.order_reverted_pending_payment' })
-      } else {
-        setToast({ key: 'toast.order_updated', fallbackKey: 'toast.order_confirmed' })
-      }
+      setToast({ key: 'toast.order_updated', fallbackKey: 'toast.order_confirmed' })
     } catch (err) {
       setEditErrorKey(apiErrorTranslationKey(err))
     } finally {
@@ -974,12 +950,7 @@ export default function OrderManagement () {
       await fetchOrders(weekId)
       setToast({ key: 'toast.order_confirmed' })
     } catch (err) {
-      if (err instanceof WalletInsufficientError) {
-        await fetchOrders(weekId)
-        setToast({ key: 'toast.wallet_insufficient' })
-      } else {
-        setToast({ key: apiErrorTranslationKey(err) })
-      }
+      setToast({ key: apiErrorTranslationKey(err) })
     } finally {
       setConfirmingOrderId(null)
     }
@@ -1068,6 +1039,7 @@ export default function OrderManagement () {
             >
               {t('nav.order_management')}
             </button>
+            {filterCounts.pending_payment > 0 && (
             <button
               type="button"
               onClick={() => setMainTab('pending_payment')}
@@ -1084,6 +1056,7 @@ export default function OrderManagement () {
                 </span>
               )}
             </button>
+            )}
           </div>
 
           {mainTab === 'orders' && (

@@ -1,6 +1,6 @@
 import { Receipt } from 'lucide-react'
 import { PAYMENT_CHANNELS, WALLET_TX_TYPES } from '../../shared/lib/constants.js'
-import { formatINR } from '../../shared/lib/paise.js'
+import { formatINR, formatSignedINR } from '../../shared/lib/paise.js'
 
 export const CREDIT_TX_TYPES = new Set([
   WALLET_TX_TYPES.TOP_UP,
@@ -107,7 +107,7 @@ export function LedgerRow ({ txn, olderTxn, t, lang }) {
             <p className="mt-0.5 text-xs text-[--color-text-secondary]">
               {t('wallet.ledger.running_balance')}
               {': '}
-              {formatINR(runningBalance)}
+              {formatSignedINR(runningBalance)}
             </p>
           )}
         </div>

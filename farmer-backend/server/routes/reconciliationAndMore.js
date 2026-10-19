@@ -392,7 +392,8 @@ async function reconciliationAndMoreRoutes (fastify) {
       })
 
       walletTxnId = result.txnIds[0] ?? null
-      customerDueCreated = (result.dueAmount ?? 0) > 0
+      // true when this debit leaves the customer owing money (negative wallet_balance)
+      customerDueCreated = direction === 'debit' && result.newBalance < 0
     }
 
     await CustomerOrder.updateOne(

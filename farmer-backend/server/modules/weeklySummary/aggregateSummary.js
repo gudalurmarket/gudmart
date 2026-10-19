@@ -158,10 +158,10 @@ async function generateWeeklySummary (weekId, db, session, operatorUid) {
     if (row.payment_channel === 'upi') localFarmerPaidBank += paid
   }
 
-  const dueRows = await runAggregate(db, 'wallet_transactions', [
-    matchWeek,
-    { $match: { type: 'customer_due' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
+  // Debt lives in wallet_balance: a negative balance is what the customer owes (all weeks).
+  const dueRows = await runAggregate(db, 'customers', [
+    { $match: { wallet_balance: { $lt: 0 } } },
+    { $group: { _id: null, total: { $sum: { $multiply: ['$wallet_balance', -1] } } } }
   ], session)
   const outstandingCustomerDues = dueRows[0]?.total ?? 0
 

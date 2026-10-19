@@ -61,7 +61,6 @@ const walletTransactionSchema = new mongoose.Schema(
     running_balance: {
       type: Number,
       required: true,
-      min: 0,
       validate: {
         validator: Number.isInteger,
         message: 'Must be integer paise'

@@ -7,13 +7,13 @@ const Customer = require('../models/Customer')
 const ProductCatalogue = require('../models/ProductCatalogue')
 const WeeklyProduceItem = require('../models/WeeklyProduceItem')
 const WalletEngine = require('../modules/walletEngine')
+const { uncoveredByWallet } = require('../lib/orderBalance')
 const { buildSimilaritySuggestion } = require('../modules/parser')
 const {
   AppError,
   CustomerNotFoundError,
   DuplicateMessageError,
-  OrderNotFoundError,
-  WalletInsufficientError
+  OrderNotFoundError
 } = require('../lib/errors')
 
 const ORDER_UNITS = ['kg', 'piece', 'bunch', '100g']
@@ -292,7 +292,9 @@ function toIntakeMessage (msg, customerNames, produceList) {
  * @param {string} orderId
  * @param {string} weekId
  * @param {string} operatorId
- * @returns {Promise<{ confirmed: boolean, walletDebited: number, shortfallAmount: number|null, debitTxnId: string|null }>}
+ * @returns {Promise<{ walletDebited: number, shortfallAmount: number|null, debitTxnId: string|null }>}
+ *   shortfallAmount is the part of the order the wallet did not cover (null when fully covered);
+ *   the debit always applies and the wallet balance goes negative by that amount.
  */
 async function attemptOrderDebit ({
   customerId,
@@ -303,42 +305,25 @@ async function attemptOrderDebit ({
 }) {
   if (orderValuePaise <= 0) {
     return {
-      confirmed: true,
       walletDebited: 0,
       shortfallAmount: null,
       debitTxnId: null
     }
   }
 
-  try {
-    const { txnId } = await WalletEngine.debitForOrder({
-      idempotencyKey: randomUUID(),
-      customerId,
-      orderId,
-      weekId,
-      amount: orderValuePaise,
-      createdBy: operatorId
-    })
-    return {
-      confirmed: true,
-      walletDebited: orderValuePaise,
-      shortfallAmount: null,
-      debitTxnId: txnId
-    }
-  } catch (err) {
-    if (!(err instanceof WalletInsufficientError)) {
-      throw err
-    }
-    const customer = await Customer.findOne({ customer_id: customerId })
-      .select('wallet_balance')
-      .lean()
-    const balance = customer?.wallet_balance ?? 0
-    return {
-      confirmed: false,
-      walletDebited: 0,
-      shortfallAmount: orderValuePaise - balance,
-      debitTxnId: null
-    }
+  const { txnId, newBalance } = await WalletEngine.debitForOrder({
+    idempotencyKey: randomUUID(),
+    customerId,
+    orderId,
+    weekId,
+    amount: orderValuePaise,
+    createdBy: operatorId
+  })
+  const uncovered = uncoveredByWallet(orderValuePaise, newBalance)
+  return {
+    walletDebited: orderValuePaise,
+    shortfallAmount: uncovered > 0 ? uncovered : null,
+    debitTxnId: txnId
   }
 }
 
@@ -500,9 +485,9 @@ async function ordersAndIntakeRoutes (fastify) {
       operatorId
     })
 
-    const orderStatus = debitOutcome.confirmed ? 'confirmed' : 'pending_payment'
+    const orderStatus = 'confirmed'
     const walletDebited = debitOutcome.walletDebited
-    const balanceDue = debitOutcome.confirmed ? 0 : orderValue
+    const balanceDue = debitOutcome.shortfallAmount ?? 0
 
     await CustomerOrder.create({
       order_id: orderId,
@@ -538,7 +523,7 @@ async function ordersAndIntakeRoutes (fastify) {
       }
     }
 
-    if (!debitOutcome.confirmed) {
+    if (debitOutcome.shortfallAmount != null) {
       response.shortfallAmount = debitOutcome.shortfallAmount
     }
 
@@ -636,7 +621,7 @@ async function ordersAndIntakeRoutes (fastify) {
       operatorId
     })
 
-    const orderStatus = debitOutcome.confirmed ? 'confirmed' : 'pending_payment'
+    const orderStatus = 'confirmed'
 
     const orderDoc = {
       order_id: orderId,
@@ -647,7 +632,7 @@ async function ordersAndIntakeRoutes (fastify) {
       order_value: orderValue,
       wallet_debited: debitOutcome.walletDebited,
       wallet_txn_id: debitOutcome.debitTxnId,
-      balance_due: debitOutcome.confirmed ? 0 : orderValue,
+      balance_due: debitOutcome.shortfallAmount ?? 0,
       balance_cleared: false,
       line_items: embedded,
       created_by: operatorId
@@ -759,44 +744,24 @@ async function ordersAndIntakeRoutes (fastify) {
     let walletDebited = order.wallet_debited
     let walletTxnId = order.wallet_txn_id ?? null
     let shortfallAmount = null
+    let balanceDue = order.balance_due ?? 0
 
     if (newOrderValue > oldOrderValue) {
       const diff = newOrderValue - oldOrderValue
 
       if (order.wallet_debited > 0 && order.status === 'confirmed') {
-        try {
-          await WalletEngine.debitForOrder({
-            idempotencyKey: randomUUID(),
-            customerId: order.customer_id,
-            orderId,
-            weekId,
-            amount: diff,
-            createdBy: operatorId
-          })
-          walletDebited = order.wallet_debited + diff
-          status = 'confirmed'
-        } catch (err) {
-          if (!(err instanceof WalletInsufficientError)) {
-            throw err
-          }
-          if (!order.wallet_txn_id) {
-            throw err
-          }
-          await WalletEngine.reverseOrderDebit({
-            idempotencyKey: randomUUID(),
-            customerId: order.customer_id,
-            originalDebitTxnId: order.wallet_txn_id,
-            orderId,
-            createdBy: operatorId
-          })
-          status = 'pending_payment'
-          walletDebited = 0
-          walletTxnId = null
-          const customer = await Customer.findOne({ customer_id: order.customer_id })
-            .select('wallet_balance')
-            .lean()
-          shortfallAmount = newOrderValue - (customer?.wallet_balance ?? 0)
-        }
+        const { newBalance } = await WalletEngine.debitForOrder({
+          idempotencyKey: randomUUID(),
+          customerId: order.customer_id,
+          orderId,
+          weekId,
+          amount: diff,
+          createdBy: operatorId
+        })
+        walletDebited = order.wallet_debited + diff
+        status = 'confirmed'
+        shortfallAmount = uncoveredByWallet(diff, newBalance) || null
+        balanceDue += shortfallAmount ?? 0
       } else {
         const debitOutcome = await attemptOrderDebit({
           customerId: order.customer_id,
@@ -805,10 +770,11 @@ async function ordersAndIntakeRoutes (fastify) {
           weekId,
           operatorId
         })
-        status = debitOutcome.confirmed ? 'confirmed' : 'pending_payment'
+        status = 'confirmed'
         walletDebited = debitOutcome.walletDebited
         walletTxnId = debitOutcome.debitTxnId
         shortfallAmount = debitOutcome.shortfallAmount
+        balanceDue = debitOutcome.shortfallAmount ?? 0
       }
     } else if (newOrderValue < oldOrderValue) {
       if (order.wallet_debited > 0) {
@@ -828,7 +794,7 @@ async function ordersAndIntakeRoutes (fastify) {
           orderId,
           createdBy: operatorId
         })
-        const { txnId } = await WalletEngine.debitForOrder({
+        const { txnId, newBalance } = await WalletEngine.debitForOrder({
           idempotencyKey: randomUUID(),
           customerId: order.customer_id,
           orderId,
@@ -839,6 +805,8 @@ async function ordersAndIntakeRoutes (fastify) {
         walletDebited = newOrderValue
         walletTxnId = txnId
         status = 'confirmed'
+        shortfallAmount = uncoveredByWallet(newOrderValue, newBalance) || null
+        balanceDue = shortfallAmount ?? 0
       } else {
         walletDebited = 0
       }
@@ -850,7 +818,7 @@ async function ordersAndIntakeRoutes (fastify) {
       wallet_txn_id: walletTxnId,
       status,
       line_items: embedded,
-      balance_due: status === 'confirmed' ? 0 : newOrderValue - walletDebited
+      balance_due: balanceDue
     }
     if (notes != null) update.notes = notes
 
@@ -917,17 +885,6 @@ async function ordersAndIntakeRoutes (fastify) {
       operatorId
     })
 
-    if (!debitOutcome.confirmed) {
-      throw new WalletInsufficientError(
-        'Wallet balance is insufficient to confirm this order',
-        {
-          orderId,
-          shortfallAmount: debitOutcome.shortfallAmount,
-          orderValue
-        }
-      )
-    }
-
     await CustomerOrder.updateOne(
       { order_id: orderId, week_id: weekId },
       {
@@ -935,7 +892,7 @@ async function ordersAndIntakeRoutes (fastify) {
           status: 'confirmed',
           wallet_debited: debitOutcome.walletDebited,
           wallet_txn_id: debitOutcome.debitTxnId,
-          balance_due: 0,
+          balance_due: debitOutcome.shortfallAmount ?? 0,
           pending_reason: null
         }
       }

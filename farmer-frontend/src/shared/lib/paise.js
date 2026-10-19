@@ -19,6 +19,17 @@ export function formatSignedINR (paise) {
   return `${sign}₹${(Math.abs(paise) / 100).toFixed(2)}`
 }
 
+/**
+ * Display-only wallet balance: a negative balance is what the customer owes, shown as
+ * "<owesLabel> ₹X"; zero or positive is shown as plain ₹X.
+ */
+export function formatWalletBalance (paise, owesLabel) {
+  if (!Number.isInteger(paise)) {
+    throw new TypeError(`formatWalletBalance: expected integer paise, got: ${paise}`)
+  }
+  return paise < 0 ? `${owesLabel} ${formatINR(-paise)}` : formatINR(paise)
+}
+
 /** Display helper — never throws; use when API data may be incomplete. */
 export function formatINROptional (paise) {
   if (!Number.isInteger(paise) || paise < 0) return '—'

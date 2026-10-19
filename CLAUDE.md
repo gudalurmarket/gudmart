@@ -244,7 +244,7 @@ This is the authoritative gate table. The `stateMachineGuard` plugin enforces th
 **State transition gate conditions (must pass before transition is permitted):**
 
 - `setup → open`: produce list has at least 1 item
-- `open → locked`: zero orders in `pending_payment` status
+- `open → locked`: no gate condition (customers pay at market day; an order is never held back for lack of wallet balance)
 - `locked → delivery`: no gate condition
 - `delivery → market_day`: no gate condition
 - `market_day → reconciliation`: no gate condition
@@ -258,17 +258,17 @@ When a gate rejects, return `{ ok: false, blockers: [...] }` — not a generic 4
 
 Never implement wallet behaviour outside `walletEngine.js`. The rules below are hard constraints that the engine enforces:
 
-1. **Zero-floor constraint.** Wallet balance cannot go below zero. `debitForOrder` and `applyPriceDiff` (debit direction) use atomic `findOneAndUpdate` with `{ wallet_balance: { $gte: amountPaise } }`. If the constraint fails, throw `WalletInsufficientError`. Never use a read-then-write pattern for balance checks.
+1. **No balance floor — negative balance = amount owed.** Customers do not pre-pay. `debitForOrder`, `applyPriceDiff` (debit direction) and `manualAdjustment` (debit) always apply: they use an atomic `findOneAndUpdate` with a `$subtract` pipeline and **no `$gte` filter**, so `wallet_balance` may go negative. A negative balance is what the customer owes the operator; top-ups and balance payments credit it back toward zero. There is no `WalletInsufficientError` any more. Never use a read-then-write pattern for balance changes.
 
-2. **Overdelivery two-step.** When `applyPriceDiff` (debit) would exceed the wallet balance: first debit wallet to zero (atomic, using the actual current balance as the `$gte` value), then create a `CustomerDue` record in `wallet_transactions` for the remainder. Both writes happen within a MongoDB session.
+2. **Order debits that exceed the balance.** A confirmed order is debited in full. The part the wallet could not cover (`uncoveredByWallet(amount, newBalance)`) is stored as `customer_orders.balance_due` and is collected on market day via `applyBalancePayment`. `applyPriceDiff` is a single debit or credit; there is no two-step drain and no `CustomerDue` row.
 
 3. **Running balance on every write.** Every `WalletTransaction` document stores `running_balance` = balance after this transaction. Computed at write time as `previousBalance ± amount`. Written atomically with the balance update. Never recomputed from history.
 
-4. **Transaction type enum.** Valid `WalletTransaction.type` values: `top_up`, `order_debit`, `order_debit_reversal`, `price_diff_credit`, `price_diff_debit`, `customer_due`, `balance_payment`, `manual_adjustment`. No other values.
+4. **Transaction type enum.** Valid `WalletTransaction.type` values: `top_up`, `order_debit`, `order_debit_reversal`, `price_diff_credit`, `price_diff_debit`, `customer_due` (legacy — no longer written; kept for history), `balance_payment`, `manual_adjustment`. No other values.
 
 5. **Corrections by reversal.** The engine has no `updateTransaction` or `deleteTransaction` method. Corrections create a new transaction (typically `manual_adjustment` with a mandatory `reference_note`). The original transaction is immutable.
 
-6. **No write outside a session for multi-step operations.** Any wallet operation involving more than one MongoDB write (e.g., overdelivery two-step, order debit + WalletTransaction insert) must use a MongoDB session.
+6. **No write outside a session for multi-step operations.** Any wallet operation involving more than one MongoDB write (e.g., order debit + WalletTransaction insert) must use a MongoDB session.
 
 ---
 
@@ -457,12 +457,12 @@ Tests are written **alongside implementation**, not after. Every module listed b
 
 **WalletEngine — `tests/unit/walletEngine.test.js`**
 - `topUp`: happy path, minimum valid amount
-- `debitForOrder`: sufficient balance, insufficient balance (must throw `WalletInsufficientError`), exact balance (zero after debit)
+- `debitForOrder`: sufficient balance, balance smaller than the amount (debit applies, balance goes negative, `running_balance` is negative), exact balance (zero after debit)
 - `reverseOrderDebit`: reversal creates correct inverse transaction
-- `applyPriceDiff`: credit direction, debit direction sufficient balance, debit direction insufficient balance (overdelivery two-step — wallet goes to zero, `CustomerDue` created for remainder)
+- `applyPriceDiff`: credit direction, debit direction sufficient balance, debit direction larger than balance (single `price_diff_debit`, balance goes negative, no `customer_due` row)
 - `applyBalancePayment`: happy path
 - `manualAdjustment`: credit and debit directions
-- Race condition: concurrent debit calls on same customer — only one succeeds, other throws
+- Race condition: concurrent debit calls on same customer — both apply atomically; final balance and every `running_balance` are consistent
 
 **FCFS Engine — `tests/unit/fcfsEngine.test.js`**
 - Sufficient stock: all orders fully allocated
@@ -490,7 +490,7 @@ Tests are written **alongside implementation**, not after. Every module listed b
 
 **Integration — `tests/integration/weekLifecycle.test.js`**
 - Full week from `POST /weeks` through `PATCH /weeks/:id/state` (closed): assert week state at each step
-- Wallet race condition: two concurrent `debitForOrder` calls for same customer with insufficient balance for both — one succeeds, one throws
+- Wallet race condition: two concurrent `debitForOrder` calls for same customer with insufficient balance for both — both succeed, balance goes negative by the combined shortfall
 - Webhook replay deduplication: same `message_id` posted twice — second is silently discarded, only one `InboundMessage` document exists
 
 ---

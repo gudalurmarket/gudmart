@@ -370,7 +370,7 @@ describe('PATCH /api/v1/weeks/:weekId/produce/:itemId — price increase, wallet
   })
 })
 
-describe('PATCH — price increase, wallet does NOT cover (Branch B)', () => {
+describe('PATCH — price increase, wallet does NOT cover (Branch B: goes negative)', () => {
   beforeEach(async () => {
     await seedFixtures(mongoose.connection.db, { includeOrders: true })
     await Customer.updateOne(
@@ -383,30 +383,24 @@ describe('PATCH — price increase, wallet does NOT cover (Branch B)', () => {
     await cleanupFixtures()
   })
 
-  it('Branch B — price increase, customerB wallet shortfall → pending_payment', async () => {
+  it('Branch B — price increase, customerB wallet shortfall → stays confirmed, balance negative', async () => {
     const res = await http()
       .patch(`/api/v1/weeks/${WEEK_ID}/produce/${PRODUCE_ITEM_ID}`)
       .set(authHeaders())
       .send({ pricePerUnit: 6000 })
 
     expect(res.status).toBe(200)
-    expectAffectedOrder(res.body, 'ord-b', 'pending_payment')
+    expectAffectedOrder(res.body, 'ord-b', 'confirmed')
 
     const orderB = await CustomerOrder.findOne({ order_id: 'ord-b' }).lean()
-    expect(orderB.status).toBe('pending_payment')
-    expect(orderB.pending_reason).toBe('Price change — wallet shortfall')
-    expect(orderB.wallet_debited).toBe(0)
-    expect(orderB.wallet_txn_id).toBeNull()
+    expect(orderB.status).toBe('confirmed')
+    expect(orderB.pending_reason).toBeNull()
+    expect(orderB.order_value).toBe(6000)
+    expect(orderB.wallet_debited).toBe(orderB.order_value)
 
+    // 100 starting balance; the 1000 price delta is debited on top of the existing order debit
     const customerB = await Customer.findOne({ customer_id: 'cust-b' }).lean()
-    expect(customerB.wallet_balance).toBe(5100)
-
-    const reversal = await WalletTransaction.findOne({
-      customer_id: 'cust-b',
-      type: 'order_debit_reversal',
-      amount: 5000
-    }).lean()
-    expect(reversal).not.toBeNull()
+    expect(customerB.wallet_balance).toBe(100 - 1000)
   })
 })
 

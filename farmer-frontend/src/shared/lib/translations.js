@@ -54,10 +54,6 @@ export const translations = {
   },
 
   // GROUP 4 — Gate blocker messages (5 keys)
-  'blocker.pending_payment_orders': {
-    en: 'Pending Payment orders must be resolved before locking.',
-    ta: 'பூட்டுவதற்கு முன் “நிலுவை கட்டணம்” உள்ள ஆர்டர்கள் தீர்க்கப்பட வேண்டும்.'
-  },
   'blocker.empty_produce_list': {
     en: 'Produce list must contain at least 1 item to publish the week.',
     ta: 'வாரத்தை வெளியிட விளைவு பட்டியலில் குறைந்தது 1 உருப்பு இருக்க வேண்டும்.'
@@ -128,6 +124,7 @@ export const translations = {
   'wallet.customer_search.placeholder': { en: 'Search customers…', ta: 'வாடிக்கையாளர்களை தேடுங்கள்…' },
   'wallet.no_customers': { en: 'No customers found', ta: 'வாடிக்கையாளர்கள் இல்லை' },
   'wallet.current_balance': { en: 'Current Balance', ta: 'தற்போதைய இருப்பு' },
+  'wallet.owes': { en: 'Owes', ta: 'நிலுவை' }, // TA: REVIEW REQUIRED
   'wallet.topup.title': { en: 'Record Top-Up', ta: 'டாப்-அப் பதிவு செய்' },
   'wallet.topup.amount_label': { en: 'Amount (₹)', ta: 'தொகை (₹)' },
   'wallet.topup.amount_placeholder': { en: '0', ta: '0' },
@@ -139,11 +136,6 @@ export const translations = {
     en: 'Top-ups are not available in this state',
     ta: 'இந்த நிலையில் டாப்-அப் செய்ய முடியாது',
   },
-  'wallet.pending_orders_now_coverable': {
-    en: 'Wallet now covers pending order(s). Go to Order Management to confirm.',
-    ta: 'வாலெட் இப்போது நிலுவை ஆர்டர்களை மறைக்கிறது. உறுதி செய்ய ஆர்டர் மேலாண்மைக்கு செல்லுங்கள்.',
-  },
-  'wallet.go_to_orders': { en: 'View Pending Orders', ta: 'நிலுவை ஆர்டர்களை பார்' },
   'wallet.ledger.title': { en: 'Ledger', ta: 'பதிவேடு' },
   'wallet.ledger.running_balance': { en: 'Balance', ta: 'இருப்பு' },
   'wallet.ledger.empty': { en: 'No transactions yet', ta: 'பரிவர்த்தனைகள் இல்லை' },
@@ -277,10 +269,10 @@ export const translations = {
   'toast.order_cancelled': { en: 'Order cancelled.', ta: 'ஆர்டர் ரத்து செய்யப்பட்டது.' },
   'toast.order_approved': { en: 'Order approved.', ta: 'ஆர்டர் அங்கீகரிக்கப்பட்டது.' },
   'toast.order_rejected': { en: 'Order rejected.', ta: 'ஆர்டர் நிராகரிக்கப்பட்டது.' },
-  'toast.order_reverted_pending_payment': {
-    en: 'Order saved as Pending Payment — wallet balance insufficient.',
-    ta: 'ஆர்டர் "கட்டணம் நிலுவையில்" என சேமிக்கப்பட்டது — வாலெட் இருப்பு போதவில்லை.'
-  },
+  'toast.order_approved_owing': {
+    en: 'Order approved — wallet balance insufficient, customer owes the difference.',
+    ta: 'ஆர்டர் அங்கீகரிக்கப்பட்டது — வாலெட் இருப்பு போதவில்லை, வித்தியாசத்தை வாடிக்கையாளர் செலுத்த வேண்டும்.'
+  }, // TA: REVIEW REQUIRED
   'toast.topup_recorded': { en: 'Top-up recorded.', ta: 'டாப்-அப் பதிவு செய்யப்பட்டது.' }, // TA: REVIEW REQUIRED
   'toast.week_state_changed': { en: 'Week state updated.', ta: 'வார நிலை புதுப்பிக்கப்பட்டது.' },
   'toast.week_created': { en: 'Week created.', ta: 'வாரம் உருவாக்கப்பட்டது.' },
@@ -481,7 +473,7 @@ export const translations = {
   'intake.manual_order.customer_placeholder': { en: 'Search or select customer…', ta: 'வாடிக்கையாளரை தேடுங்கள்…' },
   'intake.manual_order.submit': { en: 'Submit Order', ta: 'ஆர்டர் சமர்பி' },
   'intake.manual_order.confirmed': { en: 'Order confirmed — wallet debited', ta: 'ஆர்டர் உறுதி — வாலெட் டெபிட் செய்யப்பட்டது' },
-  'intake.manual_order.pending_payment': { en: 'Order saved as Pending Payment — wallet short by', ta: 'ஆர்டர் "கட்டணம் நிலுவையில்" என சேமிக்கப்பட்டது — குறைவு' },
+  'intake.manual_order.confirmed_owing': { en: 'Order confirmed — customer owes', ta: 'ஆர்டர் உறுதி — வாடிக்கையாளர் செலுத்த வேண்டியது' }, // TA: REVIEW REQUIRED
   'intake.queue_readonly_notice': {
     en: 'Queue actions are only available when the week is open. Showing existing messages.',
     ta: 'வாரம் திறந்திருக்கும்போது மட்டுமே வரிசை செயல்கள் கிடைக்கும். இருக்கும் செய்திகள் காட்டப்படுகின்றன.'
@@ -850,7 +842,6 @@ export const translations = {
   // Dashboard Zone 2 — state-contextual stat labels
   'dashboard.stat.intake_pending': { en: 'Pending Intake', ta: 'நிலுவையில் உள்ளீடு' },
   'dashboard.stat.confirmed_orders': { en: 'Confirmed Orders', ta: 'உறுதிப்படுத்தப்பட்ட ஆர்டர்கள்' },
-  'dashboard.stat.pending_payment': { en: 'Pending Payment', ta: 'கட்டணம் நிலுவையில்' },
   'dashboard.stat.produce_items': { en: 'Produce Items', ta: 'விளைவு உருப்புகள்' }, // TA: REVIEW REQUIRED
   'dashboard.stat.registered_customers': { en: 'Registered Customers', ta: 'பதிவு செய்யப்பட்ட வாடிக்கையாளர்கள்' }, // TA: REVIEW REQUIRED
   'dashboard.stat.total_order_value': { en: 'Total Order Value', ta: 'மொத்த ஆர்டர் மதிப்பு' }, // TA: REVIEW REQUIRED

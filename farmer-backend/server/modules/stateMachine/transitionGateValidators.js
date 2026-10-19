@@ -14,11 +14,6 @@ const Farmer = require('../../models/Farmer')
 const LocalFarmerInbound = require('../../models/LocalFarmerInbound')
 const ProductCatalogue = require('../../models/ProductCatalogue')
 
-/** @param {number} paise */
-function formatPaiseForLabel (paise) {
-  return `₹${(paise / 100).toFixed(2)}`
-}
-
 /**
  * @param {string} fromState
  * @param {string} toState
@@ -27,7 +22,6 @@ function formatPaiseForLabel (paise) {
 function hasGateValidator (fromState, toState) {
   const edge = `${fromState}→${toState}`
   return edge === 'setup→open' ||
-    edge === 'open→locked' ||
     edge === 'reconciliation→closed'
 }
 
@@ -47,38 +41,6 @@ async function validateSetupToOpen (weekId) {
       id: weekId,
       label: 'Add at least one produce list item before publishing the week'
     }]
-  }
-}
-
-/**
- * @param {string} weekId
- * @returns {Promise<{ ok: true } | { ok: false, blockers: object[] }>}
- */
-async function validateOpenToLocked (weekId) {
-  const pending = await CustomerOrder.find({
-    week_id: weekId,
-    status: 'pending_payment'
-  })
-    .select('order_id customer_id order_value')
-    .lean()
-
-  if (pending.length === 0) {
-    return { ok: true }
-  }
-
-  const customerIds = [...new Set(pending.map(o => o.customer_id))]
-  const customers = await Customer.find({ customer_id: { $in: customerIds } })
-    .select('customer_id name')
-    .lean()
-  const nameById = new Map(customers.map(c => [c.customer_id, c.name]))
-
-  return {
-    ok: false,
-    blockers: pending.map(order => ({
-      type: 'PENDING_PAYMENT_ORDER',
-      id: order.order_id,
-      label: `${nameById.get(order.customer_id) ?? 'Customer'} — ${formatPaiseForLabel(order.order_value)} — pending payment`
-    }))
   }
 }
 
@@ -223,8 +185,6 @@ async function validateTransitionGate (fromState, toState, weekId) {
   switch (edge) {
     case 'setup→open':
       return validateSetupToOpen(weekId)
-    case 'open→locked':
-      return validateOpenToLocked(weekId)
     case 'reconciliation→closed':
       return validateReconciliationToClosed(weekId)
     default:
@@ -236,6 +196,5 @@ module.exports = {
   hasGateValidator,
   validateTransitionGate,
   validateSetupToOpen,
-  validateOpenToLocked,
   validateReconciliationToClosed
 }
