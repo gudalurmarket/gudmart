@@ -3,6 +3,7 @@
 require('./helpers/setup')
 
 const Customer = require('../../server/models/Customer')
+const CustomerOrder = require('../../server/models/CustomerOrder')
 const WalletTransaction = require('../../server/models/WalletTransaction')
 const {
   http,
@@ -56,7 +57,7 @@ describe('POST /api/v1/weeks/:weekId/orders', () => {
     expect(txns[0].amount).toBe(20000)
   })
 
-  it('returns pending_payment when wallet is insufficient', async () => {
+  it('confirms the order and takes the balance negative when wallet is insufficient', async () => {
     await Customer.updateOne(
       { customer_id: customerId },
       { $set: { wallet_balance: 5000 } }
@@ -72,17 +73,22 @@ describe('POST /api/v1/weeks/:weekId/orders', () => {
 
     expect(res.status).toBe(201)
     expect(res.body).toMatchObject({
-      status: 'pending_payment',
+      status: 'confirmed',
       orderValue: 20000,
-      walletDebited: 0,
+      walletDebited: 20000,
       shortfallAmount: 15000
     })
 
     const customer = await Customer.findOne({ customer_id: customerId }).lean()
-    expect(customer.wallet_balance).toBe(5000)
+    expect(customer.wallet_balance).toBe(-15000)
 
-    const txnCount = await WalletTransaction.countDocuments({ customer_id: customerId })
-    expect(txnCount).toBe(0)
+    const txns = await WalletTransaction.find({ customer_id: customerId }).lean()
+    expect(txns).toHaveLength(1)
+    expect(txns[0].running_balance).toBe(-15000)
+
+    // the uncovered part is what gets collected at market day
+    const order = await CustomerOrder.findOne({ order_id: res.body.orderId }).lean()
+    expect(order.balance_due).toBe(15000)
   })
 
   it('returns 400 when productId is not in weekly produce list', async () => {

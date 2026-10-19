@@ -130,17 +130,19 @@ export default function OrderIntake () {
     (result) => {
       setShowManualForm(false)
       if (result?.status === ORDER_STATUS.CONFIRMED) {
-        setToast({
-          key: 'intake.manual_order.confirmed',
-          shortfallAmount: result.walletDebited ?? null,
-          isConfirmed: true,
-        })
-      } else if (result?.status === ORDER_STATUS.PENDING_PAYMENT) {
-        setToast({
-          key: 'intake.manual_order.pending_payment',
-          shortfallAmount: result.shortfallAmount ?? null,
-          isConfirmed: false,
-        })
+        if (result.shortfallAmount > 0) {
+          setToast({
+            key: 'intake.manual_order.confirmed_owing',
+            shortfallAmount: result.shortfallAmount,
+            isConfirmed: false,
+          })
+        } else {
+          setToast({
+            key: 'intake.manual_order.confirmed',
+            shortfallAmount: result.walletDebited ?? null,
+            isConfirmed: true,
+          })
+        }
       }
       fetchIntake()
     },

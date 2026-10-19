@@ -6,12 +6,12 @@ const WeeklyProduceItem = require('../models/WeeklyProduceItem')
 const ProductCatalogue = require('../models/ProductCatalogue')
 const CustomerOrder = require('../models/CustomerOrder')
 const WalletEngine = require('../modules/walletEngine')
+const { uncoveredByWallet } = require('../lib/orderBalance')
 const { enforceActionAllowed } = require('../modules/stateMachine')
 const {
   AppError,
   ActionNotAllowedError,
-  MarketWeekNotFoundError,
-  WalletInsufficientError
+  MarketWeekNotFoundError
 } = require('../lib/errors')
 
 const PRODUCE_UNITS = ['kg', 'piece', 'bunch', '100g']
@@ -166,32 +166,19 @@ async function applyPriceChangeSideEffects (
     let newStatus = 'confirmed'
     let walletDebited = order.wallet_debited
     let walletTxnId = order.wallet_txn_id ?? null
+    let balanceDue = order.balance_due ?? 0
 
     if (delta > 0) {
-      let debitSucceeded = false
-      try {
-        await walletEngine.debitForOrder({
-          idempotencyKey: randomUUID(),
-          customerId,
-          orderId,
-          weekId,
-          amount: delta,
-          createdBy: operatorId
-        })
-        walletDebited = order.wallet_debited + delta
-        debitSucceeded = true
-      } catch (err) {
-        if (!(err instanceof WalletInsufficientError)) {
-          throw err
-        }
-      }
-
-      if (!debitSucceeded) {
-        await reverseOriginalOrderDebit(order, walletEngine, operatorId, fastify.log)
-        newStatus = 'pending_payment'
-        walletDebited = 0
-        walletTxnId = null
-      }
+      const { newBalance } = await walletEngine.debitForOrder({
+        idempotencyKey: randomUUID(),
+        customerId,
+        orderId,
+        weekId,
+        amount: delta,
+        createdBy: operatorId
+      })
+      walletDebited = order.wallet_debited + delta
+      balanceDue += uncoveredByWallet(delta, newBalance)
     } else if (delta < 0 && order.wallet_debited > 0) {
       const originalDebitTxnId = requireConfirmedOrderWalletTxnId(order, fastify.log)
       const session = fastify.mongo.client.startSession()
@@ -223,7 +210,7 @@ async function applyPriceChangeSideEffects (
                 wallet_debited: newOrderValue,
                 status: 'confirmed',
                 pending_reason: null,
-                balance_due: 0
+                balance_due: uncoveredByWallet(newOrderValue, result.newBalance)
               }
             },
             { session }
@@ -250,13 +237,8 @@ async function applyPriceChangeSideEffects (
       wallet_txn_id: walletTxnId,
       status: newStatus
     }
-    if (newStatus === 'pending_payment') {
-      orderUpdate.pending_reason = 'Price change — wallet shortfall'
-      orderUpdate.balance_due = newOrderValue
-    } else {
-      orderUpdate.pending_reason = null
-      orderUpdate.balance_due = 0
-    }
+    orderUpdate.pending_reason = null
+    orderUpdate.balance_due = balanceDue
 
     await CustomerOrder.updateOne(
       { order_id: orderId, week_id: weekId },
@@ -272,22 +254,6 @@ async function applyPriceChangeSideEffects (
   }
 
   return affectedOrders
-}
-
-/**
- * @param {object} order
- * @param {typeof WalletEngine} walletEngine
- * @param {string} operatorId
- */
-async function reverseOriginalOrderDebit (order, walletEngine, operatorId, log) {
-  const originalDebitTxnId = requireConfirmedOrderWalletTxnId(order, log)
-  await walletEngine.reverseOrderDebit({
-    idempotencyKey: randomUUID(),
-    customerId: order.customer_id,
-    originalDebitTxnId,
-    orderId: order.order_id,
-    createdBy: operatorId
-  })
 }
 
 /**

@@ -5,7 +5,6 @@ import {
   ChevronRight,
   Loader2,
   Users,
-  X,
 } from 'lucide-react'
 import LoadingSpinner from '../../shared/components/LoadingSpinner.jsx'
 import StateMachineBadge from '../../shared/components/StateMachineBadge.jsx'
@@ -18,7 +17,7 @@ import {
 import { apiErrorTranslationKey } from '../../shared/lib/apiErrors.js'
 import { pickActiveWeek } from '../../shared/lib/activeWeek.js'
 import { PAYMENT_CHANNELS, WALLET_TX_TYPES, WEEK_STATES } from '../../shared/lib/constants.js'
-import { formatINR, parseINR } from '../../shared/lib/paise.js'
+import { formatWalletBalance, parseINR } from '../../shared/lib/paise.js'
 import { WalletLedgerSection } from '../components/walletLedger.jsx'
 
 const TOAST_DISMISS_MS = 6000
@@ -30,37 +29,6 @@ const TOPUP_ALLOWED_STATES = new Set([
   WEEK_STATES.DELIVERY,
   WEEK_STATES.MARKET_DAY,
 ])
-
-function PendingOrdersPrompt ({ count, t, onDismiss, onGoToOrders }) {
-  return (
-    <div className="rounded-xl border border-[--color-warning-light] bg-[--color-warning-light] p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-[--color-warning]">
-            {t('wallet.pending_orders_now_coverable')}
-            {' '}
-            <span className="font-semibold">({count})</span>
-          </p>
-          <button
-            type="button"
-            onClick={onGoToOrders}
-            className="mt-2 text-sm font-medium text-[--color-primary] underline"
-          >
-            {t('wallet.go_to_orders')}
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="shrink-0 rounded-lg p-1 text-[--color-warning] hover:bg-[--color-warning-light]"
-          aria-label={t('action.close')}
-        >
-          <X size={16} strokeWidth={1.5} />
-        </button>
-      </div>
-    </div>
-  )
-}
 
 function TopUpForm ({
   t,
@@ -176,14 +144,12 @@ export function CustomerWalletDetail ({
   onBack,
   onToast,
 }) {
-  const navigate = useNavigate()
   const [walletBalance, setWalletBalance] = useState(0)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadErrorKey, setLoadErrorKey] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitErrorKey, setSubmitErrorKey] = useState(null)
-  const [pendingCoverable, setPendingCoverable] = useState(null)
 
   const loadWallet = useCallback(async () => {
     setLoading(true)
@@ -238,13 +204,6 @@ export function CustomerWalletDetail ({
           await loadWallet()
         }
 
-        const coverable = result.pendingOrdersNowCoverable ?? []
-        if (coverable.length > 0) {
-          setPendingCoverable(coverable)
-        } else {
-          setPendingCoverable(null)
-        }
-
         onToast('toast.topup_recorded')
         return true
       } catch (err) {
@@ -295,10 +254,14 @@ export function CustomerWalletDetail ({
         <p className="text-sm text-[--color-text-secondary]">{t('wallet.current_balance')}</p>
         <p
           className={`mt-1 text-4xl font-bold ${
-            walletBalance > 0 ? 'text-[--color-primary]' : 'text-[--color-text-disabled]'
+            walletBalance > 0
+              ? 'text-[--color-primary]'
+              : walletBalance < 0
+                ? 'text-[--color-error]'
+                : 'text-[--color-text-disabled]'
           }`}
         >
-          {formatINR(walletBalance)}
+          {formatWalletBalance(walletBalance, t('wallet.owes'))}
         </p>
       </div>
 
@@ -314,16 +277,6 @@ export function CustomerWalletDetail ({
             submitting={submitting}
             submitErrorKey={submitErrorKey}
           />
-          {pendingCoverable && pendingCoverable.length > 0 && (
-            <div className="mt-4">
-              <PendingOrdersPrompt
-                count={pendingCoverable.length}
-                t={t}
-                onDismiss={() => setPendingCoverable(null)}
-                onGoToOrders={() => navigate('/operator/orders?filter=pending_payment')}
-              />
-            </div>
-          )}
         </div>
       ) : (
         <p className="text-sm text-[--color-text-secondary]">{t('wallet.topup_not_available')}</p>
@@ -399,10 +352,12 @@ function CustomerList ({
                       className={`text-sm ${
                         balance > 0
                           ? 'font-semibold text-[--color-primary]'
-                          : 'text-[--color-text-disabled]'
+                          : balance < 0
+                            ? 'font-semibold text-[--color-error]'
+                            : 'text-[--color-text-disabled]'
                       }`}
                     >
-                      {formatINR(balance)}
+                      {formatWalletBalance(balance, t('wallet.owes'))}
                     </span>
                     <ChevronRight size={16} strokeWidth={1.5} className="text-[--color-text-disabled]" />
                   </div>

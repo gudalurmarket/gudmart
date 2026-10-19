@@ -23,10 +23,10 @@ const customerSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    // paise; negative = amount the customer owes
     wallet_balance: {
       type: Number,
       required: true,
-      min: 0,
       validate: {
         validator: Number.isInteger,
         message: 'Must be integer paise'

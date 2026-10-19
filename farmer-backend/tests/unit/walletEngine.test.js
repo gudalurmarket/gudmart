@@ -6,7 +6,6 @@ const Customer = require('../../server/models/Customer')
 const CustomerOrder = require('../../server/models/CustomerOrder')
 const WalletTransaction = require('../../server/models/WalletTransaction')
 const {
-  WalletInsufficientError,
   WalletValidationError,
   WalletDuplicateReversalError,
   WalletDuplicateOperationError,
@@ -78,19 +77,20 @@ describe('WalletEngine', () => {
   })
 
   describe('debitForOrder', () => {
-    it('throws WalletInsufficientError when debit exceeds balance without mutating ledger', async () => {
+    it('debit exceeding balance drives wallet_balance negative (customer owes the remainder)', async () => {
       const customer = await createCustomer(1500)
 
-      await expect(
-        WalletEngine.debitForOrder(debitParams({
-          customerId: customer.customer_id,
-          amount: 5000
-        }))
-      ).rejects.toBeInstanceOf(WalletInsufficientError)
+      const result = await WalletEngine.debitForOrder(debitParams({
+        customerId: customer.customer_id,
+        amount: 5000
+      }))
 
-      const unchanged = await Customer.findOne({ customer_id: customer.customer_id }).lean()
-      expect(unchanged.wallet_balance).toBe(1500)
-      expect(await WalletTransaction.countDocuments({ customer_id: customer.customer_id })).toBe(0)
+      const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
+      const txns = await WalletTransaction.find({ customer_id: customer.customer_id }).lean()
+      expect(updated.wallet_balance).toBe(-3500)
+      expect(result.newBalance).toBe(-3500)
+      expect(txns).toHaveLength(1)
+      expect(txns[0].running_balance).toBe(-3500)
     })
 
     it('throws CustomerNotFoundError for unknown customerId', async () => {
@@ -99,7 +99,7 @@ describe('WalletEngine', () => {
       ).rejects.toBeInstanceOf(CustomerNotFoundError)
     })
 
-    it('concurrent debits: only one succeeds when combined amount exceeds balance', async () => {
+    it('concurrent debits: both succeed and the balance reflects both', async () => {
       const customer = await createCustomer(3000)
       const amount = 2000
 
@@ -116,22 +116,19 @@ describe('WalletEngine', () => {
         }))
       ])
 
-      const fulfilled = results.filter(r => r.status === 'fulfilled')
-      const rejected = results.filter(r => r.status === 'rejected')
-
-      expect(fulfilled).toHaveLength(1)
-      expect(rejected).toHaveLength(1)
-      expect(rejected[0].reason).toBeInstanceOf(WalletInsufficientError)
+      expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(2)
 
       const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
-      const txns = await WalletTransaction.find({ customer_id: customer.customer_id }).lean()
+      const txns = await WalletTransaction.find({ customer_id: customer.customer_id })
+        .sort({ created_at: 1 })
+        .lean()
 
-      expect(updated.wallet_balance).toBe(1000)
-      expect(txns).toHaveLength(1)
-      expect(txns[0].running_balance).toBe(updated.wallet_balance)
+      expect(updated.wallet_balance).toBe(-1000)
+      expect(txns).toHaveLength(2)
+      expect(txns.map(t => t.running_balance).sort((x, y) => y - x)).toEqual([1000, -1000])
     })
 
-    it('concurrent debits: many parallel attempts leave balance non-negative with at most floor(balance/amount) successes', async () => {
+    it('concurrent debits: many parallel attempts all apply atomically', async () => {
       const customer = await createCustomer(5000)
       const amount = 2000
       const attempts = 5
@@ -146,26 +143,16 @@ describe('WalletEngine', () => {
         )
       )
 
-      const successes = results.filter(r => r.status === 'fulfilled')
-      const failures = results.filter(r => r.status === 'rejected')
-
-      expect(successes.length).toBe(2)
-      expect(failures.length).toBe(3)
-      for (const f of failures) {
-        expect(f.reason).toBeInstanceOf(WalletInsufficientError)
-      }
+      expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(attempts)
 
       const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
-      const txns = await WalletTransaction.find({ customer_id: customer.customer_id })
-        .sort({ created_at: 1 })
-        .lean()
+      const txns = await WalletTransaction.find({ customer_id: customer.customer_id }).lean()
 
-      expect(updated.wallet_balance).toBe(1000)
-      expect(txns).toHaveLength(2)
-      for (const txn of txns) {
-        expect(txn.running_balance).toBeGreaterThanOrEqual(0)
-      }
-      expect(txns[txns.length - 1].running_balance).toBe(updated.wallet_balance)
+      expect(updated.wallet_balance).toBe(5000 - attempts * amount)
+      expect(txns).toHaveLength(attempts)
+      // every running_balance is distinct: no two debits saw the same previous balance
+      expect(new Set(txns.map(t => t.running_balance)).size).toBe(attempts)
+      expect(Math.min(...txns.map(t => t.running_balance))).toBe(updated.wallet_balance)
     })
 
     it('sets running_balance equal to wallet_balance after debit', async () => {
@@ -365,7 +352,7 @@ describe('WalletEngine', () => {
       expect(txn.type).toBe('price_diff_debit')
     })
 
-    it('overdelivery two-step: drains wallet to zero and records customer_due', async () => {
+    it('debit larger than balance goes negative with a single price_diff_debit row', async () => {
       const customer = await createCustomer(800)
       const key = randomUUID()
 
@@ -380,21 +367,17 @@ describe('WalletEngine', () => {
       })
 
       const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
-      const drain = await WalletTransaction.findOne({ txn_id: `${key}:drain` }).lean()
-      const due = await WalletTransaction.findOne({ txn_id: `${key}:due` }).lean()
+      const txn = await WalletTransaction.findOne({ txn_id: key }).lean()
 
-      expect(updated.wallet_balance).toBe(0)
-      expect(result.newBalance).toBe(0)
-      expect(result.dueAmount).toBe(1700)
-      expect(result.txnIds).toEqual([`${key}:drain`, `${key}:due`])
-      expect(drain.amount).toBe(800)
-      expect(drain.running_balance).toBe(0)
-      expect(due.type).toBe('customer_due')
-      expect(due.amount).toBe(1700)
-      expect(due.running_balance).toBe(0)
+      expect(updated.wallet_balance).toBe(-1700)
+      expect(result).toEqual({ txnIds: [key], newBalance: -1700, dueAmount: 0 })
+      expect(txn.type).toBe('price_diff_debit')
+      expect(txn.amount).toBe(2500)
+      expect(txn.running_balance).toBe(-1700)
+      expect(await WalletTransaction.countDocuments({ customer_id: customer.customer_id })).toBe(1)
     })
 
-    it('overdelivery with zero wallet creates only customer_due', async () => {
+    it('debit against a zero wallet leaves a negative balance', async () => {
       const customer = await createCustomer(0)
       const key = randomUUID()
 
@@ -408,9 +391,25 @@ describe('WalletEngine', () => {
         createdBy: OPERATOR
       })
 
-      expect(result.txnIds).toEqual([`${key}:due`])
-      expect(result.dueAmount).toBe(900)
-      expect(await WalletTransaction.countDocuments({ customer_id: customer.customer_id })).toBe(1)
+      expect(result.txnIds).toEqual([key])
+      expect(result.newBalance).toBe(-900)
+      expect((await Customer.findOne({ customer_id: customer.customer_id }).lean()).wallet_balance).toBe(-900)
+    })
+
+    it('a top-up against a negative balance reduces the debt', async () => {
+      const customer = await createCustomer(-900)
+
+      const result = await WalletEngine.topUp({
+        idempotencyKey: randomUUID(),
+        customerId: customer.customer_id,
+        amount: 500,
+        channel: 'cash',
+        referenceNote: 'part payment of old debt',
+        weekId: WEEK_ID,
+        createdBy: OPERATOR
+      })
+
+      expect(result.newBalance).toBe(-400)
     })
   })
 
@@ -494,22 +493,21 @@ describe('WalletEngine', () => {
       expect(result.newBalance).toBe(1300)
     })
 
-    it('throws WalletInsufficientError on debit when balance is too low', async () => {
+    it('debit larger than balance goes negative', async () => {
       const customer = await createCustomer(300)
 
-      await expect(
-        WalletEngine.manualAdjustment({
-          idempotencyKey: randomUUID(),
-          customerId: customer.customer_id,
-          amount: 500,
-          direction: 'debit',
-          reason: 'over-debit attempt',
-          createdBy: OPERATOR
-        })
-      ).rejects.toBeInstanceOf(WalletInsufficientError)
+      const result = await WalletEngine.manualAdjustment({
+        idempotencyKey: randomUUID(),
+        customerId: customer.customer_id,
+        amount: 500,
+        direction: 'debit',
+        reason: 'over-debit',
+        createdBy: OPERATOR
+      })
 
-      expect((await Customer.findOne({ customer_id: customer.customer_id }).lean()).wallet_balance).toBe(300)
-      expect(await WalletTransaction.countDocuments({ customer_id: customer.customer_id })).toBe(0)
+      expect(result.newBalance).toBe(-200)
+      expect((await Customer.findOne({ customer_id: customer.customer_id }).lean()).wallet_balance).toBe(-200)
+      expect(await WalletTransaction.countDocuments({ customer_id: customer.customer_id })).toBe(1)
     })
 
     it('requires a non-empty reason', async () => {

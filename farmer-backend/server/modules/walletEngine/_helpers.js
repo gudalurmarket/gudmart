@@ -79,10 +79,13 @@ function assertIdempotencyKey (key) {
   }
 }
 
-function assertNonNegativeBalance (balance, context) {
-  if (!Number.isInteger(balance) || balance < 0) {
+/**
+ * Balances may be negative: a negative wallet_balance is the amount the customer owes.
+ */
+function assertIntegerBalance (balance, context) {
+  if (!Number.isInteger(balance)) {
     throw new WalletValidationError(
-      'Wallet invariant violated: balance must be a non-negative integer (paise)',
+      'Wallet invariant violated: balance must be an integer (paise)',
       { ...context, balance }
     )
   }
@@ -92,12 +95,12 @@ function assertNonNegativeBalance (balance, context) {
  * B2 §5.2 — running_balance after credit/debit from previous wallet balance.
  */
 function computeRunningBalance (previousBalance, amount, effect) {
-  assertNonNegativeBalance(previousBalance, { field: 'previousBalance' })
+  assertIntegerBalance(previousBalance, { field: 'previousBalance' })
   assertPositive(amount, 'amount')
   const running = effect === 'credit'
     ? previousBalance + amount
     : previousBalance - amount
-  assertNonNegativeBalance(running, { field: 'running_balance', effect })
+  assertIntegerBalance(running, { field: 'running_balance', effect })
   return running
 }
 
@@ -140,7 +143,7 @@ function assertSameOperation (existing, expected, idempotencyKey) {
  * Build a wallet_transactions document.
  */
 function buildTxnDoc (params) {
-  assertNonNegativeBalance(params.running_balance, { field: 'running_balance' })
+  assertIntegerBalance(params.running_balance, { field: 'running_balance' })
   return {
     txn_id: params.txn_id,
     customer_id: params.customer_id,
@@ -218,16 +221,18 @@ async function atomicCreditCustomer (session, customerId, amount) {
 }
 
 /**
- * Atomic gated debit — filter wallet_balance >= amount, pipeline $subtract (B2 §4.2, §5.6).
- * Returns null when insufficient (caller distinguishes not-found vs insufficient).
+ * Atomic debit — pipeline $subtract with no balance floor; wallet_balance may go negative
+ * (negative = customer owes). No read-then-write.
  */
-async function atomicGatedDebitCustomer (session, customerId, amount) {
+async function atomicDebitCustomer (session, customerId, amount) {
   const updated = await Customer.findOneAndUpdate(
-    { customer_id: customerId, wallet_balance: { $gte: amount } },
+    { customer_id: customerId },
     [{ $set: { wallet_balance: { $subtract: ['$wallet_balance', amount] } } }],
     customerUpdateOptions(session)
   )
-  if (!updated) return null
+  if (!updated) {
+    throw new CustomerNotFoundError(`Customer not found: ${customerId}`, { customerId })
+  }
 
   const previousBalance = updated.wallet_balance + amount
   const runningBalance = verifyPostUpdateBalance(
@@ -237,41 +242,6 @@ async function atomicGatedDebitCustomer (session, customerId, amount) {
     updated.wallet_balance
   )
   return { updated, previousBalance, runningBalance }
-}
-
-/**
- * Drain exact wallet remainder to zero (overdelivery step A — B2 §5.4).
- */
-async function atomicDrainWallet (session, customerId, drainAmount) {
-  if (drainAmount === 0) {
-    const exists = await Customer.exists({ customer_id: customerId }).session(session)
-    if (!exists) {
-      throw new CustomerNotFoundError(`Customer not found: ${customerId}`, { customerId })
-    }
-    return { previousBalance: 0, runningBalance: 0 }
-  }
-
-  const updated = await Customer.findOneAndUpdate(
-    { customer_id: customerId, wallet_balance: { $gte: drainAmount } },
-    [{ $set: { wallet_balance: { $subtract: ['$wallet_balance', drainAmount] } } }],
-    customerUpdateOptions(session)
-  )
-  if (!updated) return null
-
-  const previousBalance = updated.wallet_balance + drainAmount
-  const runningBalance = verifyPostUpdateBalance(
-    previousBalance,
-    drainAmount,
-    'debit',
-    updated.wallet_balance
-  )
-  if (runningBalance !== 0) {
-    throw new WalletValidationError(
-      'Overdelivery drain must leave wallet_balance at exactly zero',
-      { customerId, drainAmount, runningBalance }
-    )
-  }
-  return { previousBalance, runningBalance }
 }
 
 /**
@@ -296,15 +266,14 @@ async function applyCreditMutation (session, {
 }
 
 /**
- * Gated debit path: idempotency → atomic balance → ledger insert (single session).
+ * Debit path: idempotency → atomic balance → ledger insert (single session).
  */
-async function applyGatedDebitMutation (session, {
+async function applyDebitMutation (session, {
   idempotencyKey,
   customerId,
   amount,
   expected,
-  buildDoc,
-  onInsufficient
+  buildDoc
 }) {
   const existing = await findTxnByIdempotencyKey(session, idempotencyKey)
   if (existing) {
@@ -312,13 +281,9 @@ async function applyGatedDebitMutation (session, {
     return { txn: existing, newBalance: existing.running_balance }
   }
 
-  const debitResult = await atomicGatedDebitCustomer(session, customerId, amount)
-  if (!debitResult) {
-    return onInsufficient(session)
-  }
-
-  const txn = await insertLedgerRow(session, buildDoc(debitResult.runningBalance))
-  return { txn, newBalance: debitResult.runningBalance }
+  const { runningBalance } = await atomicDebitCustomer(session, customerId, amount)
+  const txn = await insertLedgerRow(session, buildDoc(runningBalance))
+  return { txn, newBalance: runningBalance }
 }
 
 async function resolveIdempotentDuplicate (error, idempotencyKey, expected, toResult) {
@@ -344,7 +309,7 @@ module.exports = {
   assertString,
   assertIdempotencyKey,
   assertSameOperation,
-  assertNonNegativeBalance,
+  assertIntegerBalance,
   computeRunningBalance,
   verifyPostUpdateBalance,
   buildTxnDoc,
@@ -352,10 +317,9 @@ module.exports = {
   findTxnByIdempotencyKey,
   insertLedgerRow,
   atomicCreditCustomer,
-  atomicGatedDebitCustomer,
-  atomicDrainWallet,
+  atomicDebitCustomer,
   applyCreditMutation,
-  applyGatedDebitMutation,
+  applyDebitMutation,
   resolveIdempotentDuplicate,
   buildOrderDebitReferenceNote,
   buildReversalReferenceNote

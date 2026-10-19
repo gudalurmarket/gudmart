@@ -314,13 +314,10 @@ export default function ParsedMessageCard ({
 }
 
 export function buildApproveToast (result) {
-  if (result?.order?.status === ORDER_STATUS.PENDING_PAYMENT) {
-    return {
-      key: 'toast.order_reverted_pending_payment',
-      shortfallAmount: result.shortfallAmount ?? null,
-    }
-  }
   if (result?.order?.status === ORDER_STATUS.CONFIRMED) {
+    if (result.shortfallAmount > 0) {
+      return { key: 'toast.order_approved_owing', shortfallAmount: result.shortfallAmount }
+    }
     return { key: 'toast.order_approved', shortfallAmount: null }
   }
   return null

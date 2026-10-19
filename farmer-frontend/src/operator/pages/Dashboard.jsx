@@ -45,7 +45,6 @@ const TRANSITION_CONFIG = {
 // ─── Blocker routing ──────────────────────────────────────────────────────────
 
 const BLOCKER_ROUTE_MAP = {
-  PENDING_PAYMENT: '/operator/orders?filter=pending_payment',
   EMPTY_PRODUCE_LIST: '/operator/setup',
   UNCONFIRMED_PRICE_DIFFERENCES: '/operator/reconciliation',
   UNPAID_FARMER_ASSIGNMENTS: '/operator/reconciliation',
@@ -53,7 +52,6 @@ const BLOCKER_ROUTE_MAP = {
 }
 
 const BLOCKER_KEY_MAP = {
-  PENDING_PAYMENT: 'blocker.pending_payment_orders',
   EMPTY_PRODUCE_LIST: 'blocker.empty_produce_list',
   UNCONFIRMED_PRICE_DIFFERENCES: 'blocker.unconfirmed_price_differences',
   UNPAID_FARMER_ASSIGNMENTS: 'blocker.unpaid_farmer_assignments',
@@ -151,9 +149,6 @@ async function loadStateSpecificStats (weekId, state) {
       pendingIntakeCount: messages !== null ? messages.length : null,
       confirmedOrderCount: orders !== null
         ? orders.filter(o => o.status === ORDER_STATUS.CONFIRMED).length
-        : null,
-      pendingPaymentCount: orders !== null
-        ? orders.filter(o => o.status === ORDER_STATUS.PENDING_PAYMENT).length
         : null,
     }
   }
@@ -258,7 +253,6 @@ function buildStatCards (state, stats, t) {
       return [
         { labelKey: 'dashboard.stat.intake_pending', value: fmt(stats.pendingIntakeCount) },
         { labelKey: 'dashboard.stat.confirmed_orders', value: fmt(stats.confirmedOrderCount) },
-        { labelKey: 'dashboard.stat.pending_payment', value: fmt(stats.pendingPaymentCount) },
       ]
     case WEEK_STATES.LOCKED:
       return [

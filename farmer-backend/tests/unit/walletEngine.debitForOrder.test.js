@@ -5,7 +5,6 @@ const WalletEngine = require('../../server/modules/walletEngine')
 const Customer = require('../../server/models/Customer')
 const WalletTransaction = require('../../server/models/WalletTransaction')
 const {
-  WalletInsufficientError,
   CustomerNotFoundError
 } = require('../../server/lib/errors')
 
@@ -77,21 +76,21 @@ describe('WalletEngine.debitForOrder', () => {
   })
 
   describe('insufficient balance', () => {
-    it('throws WalletInsufficientError without changing balance or ledger', async () => {
+    it('debits past zero and records the negative running_balance', async () => {
       const customer = await createCustomer({ walletBalance: 1000 })
 
-      await expect(
-        WalletEngine.debitForOrder(debitParams({
-          customerId: customer.customer_id,
-          amount: 5000
-        }))
-      ).rejects.toBeInstanceOf(WalletInsufficientError)
+      const result = await WalletEngine.debitForOrder(debitParams({
+        customerId: customer.customer_id,
+        amount: 5000
+      }))
 
-      const unchanged = await Customer.findOne({ customer_id: customer.customer_id }).lean()
+      const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
       const txns = await WalletTransaction.find({ customer_id: customer.customer_id }).lean()
 
-      expect(unchanged.wallet_balance).toBe(1000)
-      expect(txns).toHaveLength(0)
+      expect(updated.wallet_balance).toBe(-4000)
+      expect(result.newBalance).toBe(-4000)
+      expect(txns).toHaveLength(1)
+      expect(txns[0].running_balance).toBe(-4000)
     })
   })
 
@@ -133,7 +132,7 @@ describe('WalletEngine.debitForOrder', () => {
   })
 
   describe('concurrency', () => {
-    it('allows only one debit when two concurrent debits exceed available balance', async () => {
+    it('applies both concurrent debits even when together they exceed the balance', async () => {
       const customer = await createCustomer({ walletBalance: 3000 })
       const amount = 2000
 
@@ -152,24 +151,13 @@ describe('WalletEngine.debitForOrder', () => {
         }))
       ])
 
-      const fulfilled = results.filter(r => r.status === 'fulfilled')
-      const rejected = results.filter(r => r.status === 'rejected')
-
-      expect(fulfilled).toHaveLength(1)
-      expect(rejected).toHaveLength(1)
-      expect(rejected[0].reason).toBeInstanceOf(WalletInsufficientError)
+      expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(2)
 
       const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
       const txns = await WalletTransaction.find({ customer_id: customer.customer_id }).lean()
 
-      expect(updated.wallet_balance).toBeGreaterThanOrEqual(0)
-      expect(updated.wallet_balance).toBe(1000)
-      expect(txns).toHaveLength(1)
-
-      const initialBalance = 3000
-      const deducted = initialBalance - updated.wallet_balance
-      expect(deducted).toBeLessThanOrEqual(initialBalance)
-      expect(deducted).toBe(amount)
+      expect(updated.wallet_balance).toBe(-1000)
+      expect(txns).toHaveLength(2)
     })
   })
 
@@ -258,21 +246,18 @@ describe('WalletEngine.debitForOrder', () => {
     })
   })
 
-  describe('zero-floor invariant', () => {
-    it('never persists a negative wallet_balance after failed or partial debits', async () => {
+  describe('no balance floor', () => {
+    it('allows wallet_balance to go negative and keeps it an integer', async () => {
       const customer = await createCustomer({ walletBalance: 500 })
 
-      await expect(
-        WalletEngine.debitForOrder(debitParams({
-          customerId: customer.customer_id,
-          amount: 5000
-        }))
-      ).rejects.toBeInstanceOf(WalletInsufficientError)
+      await WalletEngine.debitForOrder(debitParams({
+        customerId: customer.customer_id,
+        amount: 5000
+      }))
 
-      const allCustomers = await Customer.find({}).lean()
-      for (const c of allCustomers) {
-        expect(c.wallet_balance).toBeGreaterThanOrEqual(0)
-      }
+      const updated = await Customer.findOne({ customer_id: customer.customer_id }).lean()
+      expect(updated.wallet_balance).toBe(-4500)
+      expect(Number.isInteger(updated.wallet_balance)).toBe(true)
     })
   })
 })

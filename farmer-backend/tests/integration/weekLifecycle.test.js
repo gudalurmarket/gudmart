@@ -375,7 +375,7 @@ describe('Full week lifecycle — setup → closed', () => {
     expect(cust.wallet_balance).toBe(TOPUP_MAIN - ORDER_VALUE) // 4000
   })
 
-  it('creates pending_payment order for zero-wallet second customer', async () => {
+  it('confirms an order for the zero-wallet second customer and leaves the balance negative', async () => {
     const res = await http()
       .post(`/api/v1/weeks/${WEEK_ID}/orders`)
       .set(authHeaders())
@@ -385,49 +385,36 @@ describe('Full week lifecycle — setup → closed', () => {
       })
 
     expect(res.status).toBe(201)
-    expect(res.body.status).toBe('pending_payment')
+    expect(res.body.status).toBe('confirmed')
     expect(res.body.orderValue).toBe(TOMATO_PRICE) // 6000
-    expect(res.body.walletDebited).toBe(0)
+    expect(res.body.walletDebited).toBe(TOMATO_PRICE)
+
+    const cust2 = await Customer.findOne({ customer_id: CUSTOMER2_ID }).lean()
+    expect(cust2.wallet_balance).toBe(-TOMATO_PRICE)
   })
 
-  it('open → locked gate — blocked while pending_payment order exists', async () => {
-    const res = await http()
-      .patch(`/api/v1/weeks/${WEEK_ID}/state`)
-      .set(authHeaders())
-      .send({ targetState: 'locked' })
-
-    expect(res.status).toBe(409)
-    expect(res.body.code).toBe('TRANSITION_GATE_FAILED')
-
-    const blockerTypes = res.body.details.blockers.map(b => b.type)
-    expect(blockerTypes).toContain('PENDING_PAYMENT_ORDER')
-  })
-
-  it('cancels the pending_payment order to clear the gate blocker', async () => {
-    const pending = await CustomerOrder.findOne({
+  it('cancels the second customer order, reversing the debit and clearing the negative balance', async () => {
+    const order = await CustomerOrder.findOne({
       week_id: WEEK_ID,
       customer_id: CUSTOMER2_ID,
-      status: 'pending_payment'
+      status: 'confirmed'
     }).lean()
-    expect(pending).not.toBeNull()
+    expect(order).not.toBeNull()
 
     const res = await http()
-      .delete(`/api/v1/weeks/${WEEK_ID}/orders/${pending.order_id}`)
+      .delete(`/api/v1/weeks/${WEEK_ID}/orders/${order.order_id}`)
       .set(authHeaders())
 
     expect(res.status).toBe(200)
     expect(res.body.status).toBe('cancelled')
 
-    const remaining = await CustomerOrder.countDocuments({
-      week_id: WEEK_ID,
-      status: 'pending_payment'
-    })
-    expect(remaining).toBe(0)
+    const cust2 = await Customer.findOne({ customer_id: CUSTOMER2_ID }).lean()
+    expect(cust2.wallet_balance).toBe(0)
   })
 
   // ─── Step 5 · Lock orders ─────────────────────────────────────────────────
 
-  it('PATCH state → locked — open → locked (gate now clear)', async () => {
+  it('PATCH state → locked — open → locked (customer owing money does not block)', async () => {
     const res = await http()
       .patch(`/api/v1/weeks/${WEEK_ID}/state`)
       .set(authHeaders())

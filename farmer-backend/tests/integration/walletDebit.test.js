@@ -15,7 +15,7 @@ const {
 } = require('./helpers/setup')
 
 describe('wallet debit and top-up (integration)', () => {
-  it('enforces atomic zero-floor debit under concurrent order creation', async () => {
+  it('applies both debits atomically under concurrent order creation (balance goes negative)', async () => {
     const { weekId } = await seedWeek('open')
     const { customerId } = await seedCustomer(10000)
     const { productId } = await seedProduceItem(weekId, 8000)
@@ -40,17 +40,16 @@ describe('wallet debit and top-up (integration)', () => {
     expect(second.status).toBe('fulfilled')
 
     const statuses = [first.value, second.value].map(r => r.body.status)
-    expect(statuses.filter(s => s === 'confirmed')).toHaveLength(1)
-    expect(statuses.filter(s => s === 'pending_payment')).toHaveLength(1)
+    expect(statuses.filter(s => s === 'confirmed')).toHaveLength(2)
 
     const customer = await Customer.findOne({ customer_id: customerId }).lean()
-    expect(customer.wallet_balance).toBe(2000)
+    expect(customer.wallet_balance).toBe(10000 - 2 * 8000)
 
     const debitCount = await WalletTransaction.countDocuments({
       customer_id: customerId,
       type: 'order_debit'
     })
-    expect(debitCount).toBe(1)
+    expect(debitCount).toBe(2)
   })
 
   it('top-up credits wallet and lists coverable pending orders without auto-confirming', async () => {
